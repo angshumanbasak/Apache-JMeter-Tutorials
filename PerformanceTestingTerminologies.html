@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Performance Testing Terminologies</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Space+Mono:wght@400;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#090C14;--bg-card:#111728;--bg-card-alt:#161D30;--bg-code:#0C0F1A;
+    --c1:#FF6B6B;--c2:#FFA726;--c3:#FFEE58;--c4:#66BB6A;--c5:#42A5F5;--c6:#AB47BC;--c7:#EF5350;--c8:#26C6DA;
+    --c1b:rgba(255,107,107,.07);--c1d:rgba(255,107,107,.2);
+    --c2b:rgba(255,167,38,.07);--c2d:rgba(255,167,38,.2);
+    --c3b:rgba(255,238,88,.06);--c3d:rgba(255,238,88,.18);
+    --c4b:rgba(102,187,106,.07);--c4d:rgba(102,187,106,.2);
+    --c5b:rgba(66,165,245,.07);--c5d:rgba(66,165,245,.2);
+    --c6b:rgba(171,71,188,.07);--c6d:rgba(171,71,188,.2);
+    --c7b:rgba(239,83,80,.07);--c7d:rgba(239,83,80,.2);
+    --c8b:rgba(38,198,218,.07);--c8d:rgba(38,198,218,.2);
+    --tp:#E8EAF6;--ts:#8E93AD;--tm:#555A72;--border:rgba(255,255,255,.055);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--tp);font-family:'Sora',sans-serif;line-height:1.6;overflow-x:hidden;}
+  .page{max-width:1100px;margin:0 auto;padding:60px 32px 80px;position:relative;z-index:1;}
+  .bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.013) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.013) 1px,transparent 1px);background-size:56px 56px;pointer-events:none;z-index:0;}
+  .bg-blob{position:fixed;border-radius:50%;filter:blur(140px);pointer-events:none;z-index:0;}
+  .bg-blob.a{width:480px;height:480px;background:rgba(66,165,245,.045);top:-80px;left:-100px;}
+  .bg-blob.b{width:380px;height:380px;background:rgba(255,107,107,.035);bottom:350px;right:-70px;}
+  .bg-blob.c{width:320px;height:320px;background:rgba(171,71,188,.03);bottom:-30px;left:30%;}
+
+  /* HERO */
+  .hero{text-align:center;margin-bottom:56px;}
+  .hero-badge{display:inline-block;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--c5);border:1px solid rgba(66,165,245,.3);padding:6px 20px;border-radius:40px;background:rgba(66,165,245,.05);margin-bottom:24px;}
+  .hero h1{font-size:clamp(30px,5vw,54px);font-weight:800;letter-spacing:-1.5px;line-height:1.1;margin-bottom:14px;background:linear-gradient(135deg,#fff 0%,var(--c5) 45%,var(--c6) 70%,var(--c1) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .hero-sub{font-size:15.5px;color:var(--ts);max-width:720px;margin:0 auto;line-height:1.75;}
+
+  /* ── TERM CARD ── */
+  .term{display:grid;grid-template-columns:68px 1fr;gap:0;margin-bottom:24px;}
+  .term-rail{display:flex;flex-direction:column;align-items:center;padding-top:28px;}
+  .term-num{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--bg);z-index:2;}
+  .term-line{flex:1;width:2px;margin-top:6px;opacity:.22;}
+
+  .term-card{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;overflow:hidden;transition:transform .25s,box-shadow .25s;}
+  .term-card:hover{transform:translateY(-3px);}
+
+  .tc-head{display:flex;align-items:center;gap:14px;padding:24px 28px 20px;border-bottom:1px solid var(--border);}
+  .tc-head h2{font-size:22px;font-weight:700;letter-spacing:-.3px;flex:1;}
+  .tc-head .tc-icon{font-size:26px;}
+
+  .tc-body{padding:24px 28px 28px;}
+
+  /* Definition block */
+  .tc-def{font-size:15px;line-height:1.75;color:var(--ts);margin-bottom:18px;padding:16px 20px;border-radius:12px;border-left:3px solid;}
+  .tc-def strong{color:var(--tp);font-weight:600;}
+
+  /* Includes list */
+  .tc-includes{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;}
+  .tc-inc{font-size:12.5px;font-weight:600;padding:7px 16px;border-radius:40px;}
+
+  /* Formula */
+  .tc-formula{font-family:'Fira Code',monospace;font-size:14px;background:var(--bg-code);border:1px solid var(--border);border-radius:10px;padding:14px 20px;margin-bottom:16px;line-height:1.6;overflow-x:auto;}
+
+  /* Example box */
+  .tc-example{border-radius:12px;padding:16px 20px;font-size:13.5px;line-height:1.65;color:var(--ts);position:relative;margin-bottom:14px;}
+  .tc-example::before{content:'EXAMPLE';font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;position:absolute;top:-8px;left:16px;padding:0 6px;background:var(--bg-card);}
+  .tc-example strong{color:var(--tp);}
+
+  /* JMeter note */
+  .tc-jm{display:inline-flex;align-items:center;gap:8px;font-family:'Fira Code',monospace;font-size:12px;padding:8px 16px;border-radius:8px;background:rgba(102,187,106,.06);border:1px solid rgba(102,187,106,.18);color:var(--c4);}
+
+  /* Color variants */
+  .t1 .term-num{background:var(--c1)}.t1 .term-line{background:var(--c1)}.t1 .tc-head h2{color:var(--c1)}.t1 .tc-def{border-color:var(--c1);background:var(--c1b)}.t1 .tc-inc{background:var(--c1b);border:1px solid var(--c1d);color:var(--c1)}.t1 .tc-example{background:var(--c1b);border:1px solid var(--c1d)}.t1 .tc-example::before{color:var(--c1)}.t1:hover .term-card{box-shadow:0 0 35px rgba(255,107,107,.07);}
+  .t2 .term-num{background:var(--c2)}.t2 .term-line{background:var(--c2)}.t2 .tc-head h2{color:var(--c2)}.t2 .tc-def{border-color:var(--c2);background:var(--c2b)}.t2 .tc-inc{background:var(--c2b);border:1px solid var(--c2d);color:var(--c2)}.t2 .tc-example{background:var(--c2b);border:1px solid var(--c2d)}.t2 .tc-example::before{color:var(--c2)}.t2:hover .term-card{box-shadow:0 0 35px rgba(255,167,38,.07);}
+  .t3 .term-num{background:var(--c3);color:#1a1a1a}.t3 .term-line{background:var(--c3)}.t3 .tc-head h2{color:var(--c3)}.t3 .tc-def{border-color:var(--c3);background:var(--c3b)}.t3 .tc-inc{background:var(--c3b);border:1px solid var(--c3d);color:var(--c3)}.t3 .tc-example{background:var(--c3b);border:1px solid var(--c3d)}.t3 .tc-example::before{color:var(--c3)}.t3:hover .term-card{box-shadow:0 0 35px rgba(255,238,88,.06);}
+  .t4 .term-num{background:var(--c4)}.t4 .term-line{background:var(--c4)}.t4 .tc-head h2{color:var(--c4)}.t4 .tc-def{border-color:var(--c4);background:var(--c4b)}.t4 .tc-inc{background:var(--c4b);border:1px solid var(--c4d);color:var(--c4)}.t4 .tc-example{background:var(--c4b);border:1px solid var(--c4d)}.t4 .tc-example::before{color:var(--c4)}.t4:hover .term-card{box-shadow:0 0 35px rgba(102,187,106,.07);}
+  .t5 .term-num{background:var(--c5)}.t5 .term-line{background:var(--c5)}.t5 .tc-head h2{color:var(--c5)}.t5 .tc-def{border-color:var(--c5);background:var(--c5b)}.t5 .tc-inc{background:var(--c5b);border:1px solid var(--c5d);color:var(--c5)}.t5 .tc-example{background:var(--c5b);border:1px solid var(--c5d)}.t5 .tc-example::before{color:var(--c5)}.t5:hover .term-card{box-shadow:0 0 35px rgba(66,165,245,.07);}
+  .t6 .term-num{background:var(--c6)}.t6 .term-line{background:var(--c6)}.t6 .tc-head h2{color:var(--c6)}.t6 .tc-def{border-color:var(--c6);background:var(--c6b)}.t6 .tc-inc{background:var(--c6b);border:1px solid var(--c6d);color:var(--c6)}.t6 .tc-example{background:var(--c6b);border:1px solid var(--c6d)}.t6 .tc-example::before{color:var(--c6)}.t6:hover .term-card{box-shadow:0 0 35px rgba(171,71,188,.07);}
+  .t7 .term-num{background:var(--c7)}.t7 .term-line{background:var(--c7)}.t7 .tc-head h2{color:var(--c7)}.t7 .tc-def{border-color:var(--c7);background:var(--c7b)}.t7 .tc-inc{background:var(--c7b);border:1px solid var(--c7d);color:var(--c7)}.t7 .tc-example{background:var(--c7b);border:1px solid var(--c7d)}.t7 .tc-example::before{color:var(--c7)}.t7:hover .term-card{box-shadow:0 0 35px rgba(239,83,80,.07);}
+  .t8 .term-num{background:var(--c8)}.t8 .term-line{background:var(--c8)}.t8 .tc-head h2{color:var(--c8)}.t8 .tc-def{border-color:var(--c8);background:var(--c8b)}.t8 .tc-inc{background:var(--c8b);border:1px solid var(--c8d);color:var(--c8)}.t8 .tc-example{background:var(--c8b);border:1px solid var(--c8d)}.t8 .tc-example::before{color:var(--c8)}.t8:hover .term-card{box-shadow:0 0 35px rgba(38,198,218,.07);}
+
+  /* ── BIG PICTURE SECTION ── */
+  .bigpic-head{display:flex;align-items:center;gap:14px;margin:56px 0 24px;}
+  .bigpic-head .bp-icon{font-size:28px;}
+  .bigpic-head h2{font-size:24px;font-weight:700;}
+
+  .bigpic{background:var(--bg-card);border:1px solid var(--border);border-radius:22px;overflow:hidden;position:relative;}
+  .bigpic::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--c1),var(--c2),var(--c3),var(--c4),var(--c5),var(--c6),var(--c8));}
+
+  .bp-scenario{padding:28px 30px;border-bottom:1px solid var(--border);}
+  .bp-scenario-label{font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--c5);margin-bottom:10px;}
+  .bp-scenario p{font-size:15px;color:var(--ts);line-height:1.7;}
+  .bp-scenario p strong{color:var(--tp);}
+
+  .bp-flow{padding:28px 30px;border-bottom:1px solid var(--border);}
+  .bp-flow-label{font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--c4);margin-bottom:14px;}
+  .bp-flow-steps{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+  .bp-step{display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:10px;background:var(--bg-card-alt);border:1px solid var(--border);font-size:14px;font-weight:600;}
+  .bp-arrow{color:var(--tm);font-size:18px;flex-shrink:0;}
+  .bp-step .bp-s-label{font-size:10px;color:var(--tm);font-family:'Space Mono',monospace;text-transform:uppercase;letter-spacing:.5px;}
+
+  .bp-metrics{padding:28px 30px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;}
+  .bp-metric{padding:18px 20px;border-radius:12px;text-align:center;}
+  .bp-metric .bm-val{font-family:'Fira Code',monospace;font-size:22px;font-weight:700;display:block;margin-bottom:4px;}
+  .bp-metric .bm-label{font-size:11px;font-family:'Space Mono',monospace;letter-spacing:1px;text-transform:uppercase;}
+
+  .bm-users{background:var(--c1b);border:1px solid var(--c1d);}.bm-users .bm-val{color:var(--c1);}.bm-users .bm-label{color:var(--c1);}
+  .bm-tt{background:var(--c6b);border:1px solid var(--c6d);}.bm-tt .bm-val{color:var(--c6);}.bm-tt .bm-label{color:var(--c6);}
+  .bm-pace{background:var(--c7b);border:1px solid var(--c7d);}.bm-pace .bm-val{color:var(--c7);}.bm-pace .bm-label{color:var(--c7);}
+  .bm-tput{background:var(--c3b);border:1px solid var(--c3d);}.bm-tput .bm-val{color:var(--c3);}.bm-tput .bm-label{color:var(--c3);}
+  .bm-rt{background:var(--c2b);border:1px solid var(--c2d);}.bm-rt .bm-val{color:var(--c2);}.bm-rt .bm-label{color:var(--c2);}
+
+  /* FOOTER */
+  .footer{text-align:center;margin-top:64px;padding-top:28px;border-top:1px solid var(--border);}
+  .footer p{font-family:'Space Mono',monospace;font-size:12px;color:var(--tm);letter-spacing:1px;}
+  .footer .fa{color:var(--c5);}
+
+  @media(max-width:700px){
+    .term{grid-template-columns:50px 1fr;}
+    .term-num{width:38px;height:38px;font-size:12px;border-radius:10px;}
+    .tc-head{padding:20px 20px 16px;}.tc-body{padding:20px;}
+    .bp-flow-steps{gap:6px;}.bp-step{padding:8px 12px;font-size:12px;}
+  }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-blob a"></div>
+<div class="bg-blob b"></div>
+<div class="bg-blob c"></div>
+
+<div class="page">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-badge">Terminologies · Performance Testing 101</div>
+    <h1>Performance Testing Terminologies</h1>
+    <p class="hero-sub">
+      The essential vocabulary every performance tester must know — from Virtual Users and Response Time to Throughput, Pacing, and how they all connect.
+    </p>
+  </div>
+
+  <!-- ═══ 1. VIRTUAL USER ═══ -->
+  <div class="term t1">
+    <div class="term-rail"><div class="term-num">01</div><div class="term-line"></div></div>
+    <div class="term-card">
+      <div class="tc-head"><h2>Virtual User (VU)</h2><span class="tc-icon">👤</span></div>
+      <div class="tc-body">
+        <div class="tc-def" style="border-color:var(--c1);background:var(--c1b);">
+          A <strong>simulated user</strong> generated by a performance testing tool. It behaves exactly like a real user — sending requests, waiting for responses, entering data, navigating pages.
+        </div>
+        <div class="tc-example" style="background:var(--c1b);border:1px solid var(--c1d);">
+          Testing <strong>500 users</strong> logging into an e-commerce site → tool creates <strong>500 VUs</strong>, each performing: Open homepage → Enter credentials → Click login → Add product.
+        </div>
+        <div class="tc-jm">⚙️ &nbsp;JMeter: Each <strong>Thread</strong> = 1 Virtual User</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 2. RESPONSE TIME ═══ -->
+  <div class="term t2">
+    <div class="term-rail"><div class="term-num">02</div><div class="term-line"></div></div>
+    <div class="term-card">
+      <div class="tc-head"><h2>Response Time</h2><span class="tc-icon">⏱️</span></div>
+      <div class="tc-body">
+        <div class="tc-def" style="border-color:var(--c2);background:var(--c2b);">
+          Total time from the moment the <strong>request leaves the client</strong> until the <strong>last byte of the response is received</strong>. Includes network transfer, server processing, and intermediate component delays.
+        </div>
+        <div class="tc-includes">
+          <span class="tc-inc" style="background:var(--c2b);border:1px solid var(--c2d);color:var(--c2);">Network Transfer</span>
+          <span class="tc-inc" style="background:var(--c2b);border:1px solid var(--c2d);color:var(--c2);">Server Processing</span>
+          <span class="tc-inc" style="background:var(--c2b);border:1px solid var(--c2d);color:var(--c2);">Load Balancer</span>
+          <span class="tc-inc" style="background:var(--c2b);border:1px solid var(--c2d);color:var(--c2);">DB / Cache</span>
+          <span class="tc-inc" style="background:var(--c2b);border:1px solid var(--c2d);color:var(--c2);">API Gateway</span>
+        </div>
+        <div class="tc-formula" style="color:var(--c2);">Response Time = Time(Last Byte Received) − Time(First Byte Sent)</div>
+        <div class="tc-example" style="background:var(--c2b);border:1px solid var(--c2d);">
+          Request sent at <strong>10:00:01.000</strong> · Last byte received at <strong>10:00:02.200</strong> → Response Time = <strong>1.2 seconds</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 3. THROUGHPUT ═══ -->
+  <div class="term t3">
+    <div class="term-rail"><div class="term-num">03</div><div class="term-line"></div></div>
+    <div class="term-card">
+      <div class="tc-head"><h2>Throughput</h2><span class="tc-icon">📊</span></div>
+      <div class="tc-body">
+        <div class="tc-def" style="border-color:var(--c3);background:var(--c3b);">
+          Number of requests or transactions the system <strong>successfully processes per second/minute</strong>. It measures the <strong>capacity</strong> of the system. Higher throughput = system handles more load.
+        </div>
+        <div class="tc-includes">
+          <span class="tc-inc" style="background:var(--c3b);border:1px solid var(--c3d);color:var(--c3);">Requests/sec (RPS)</span>
+          <span class="tc-inc" style="background:var(--c3b);border:1px solid var(--c3d);color:var(--c3);">Transactions/sec (TPS)</span>
+          <span class="tc-inc" style="background:var(--c3b);border:1px solid var(--c3d);color:var(--c3);">Pages/min</span>
+          <span class="tc-inc" style="background:var(--c3b);border:1px solid var(--c3d);color:var(--c3);">KB/s · MB/s</span>
+        </div>
+        <div class="tc-example" style="background:var(--c3b);border:1px solid var(--c3d);">
+          During peak: API handles <strong>150 req/sec</strong> · Checkout handles <strong>25 TPS</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 4. REQUEST ═══ -->
+  <div class="term t4">
+    <div class="term-rail"><div class="term-num">04</div><div class="term-line"></div></div>
+    <div class="term-card">
+      <div class="tc-head"><h2>Request</h2><span class="tc-icon">📤</span></div>
+      <div class="tc-body">
+        <div class="tc-def" style="border-color:var(--c4);background:var(--c4b);">
+          A <strong>single call</strong> sent from client to server. The atomic unit of communication.
+        </div>
+        <div class="tc-example" style="background:var(--c4b);border:1px solid var(--c4d);">
+          Login process = 3 requests:<br>
+          <strong>① GET</strong> Homepage → <strong>② POST</strong> /authenticate → <strong>③ GET</strong> Dashboard
+        </div>
+        <div class="tc-jm">⚙️ &nbsp;JMeter: Each <strong>HTTP Request Sampler</strong> = 1 Request</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 5. TRANSACTION ═══ -->
+  <div class="term t5">
+    <div class="term-rail"><div class="term-num">05</div><div class="term-line"></div></div>
+    <div class="term-card">
+      <div class="tc-head"><h2>Transaction</h2><span class="tc-icon">🔗</span></div>
+      <div class="tc-body">
+        <div class="tc-def" style="border-color:var(--c5);background:var(--c5b);">
+          A <strong>group of related requests</strong> that represent one <strong>business action</strong>. Used to measure response time of the entire workflow.
+        </div>
+        <div class="tc-example" style="background:var(--c5b);border:1px solid var(--c5d);">
+          "Login" Transaction = 3 requests:<br>
+          <strong>① Load login page</strong> → <strong>② Submit credentials</strong> → <strong>③ Load dashboard</strong><br>
+          → Gives you the <strong>overall response time</strong> of the Login workflow.
+        </div>
+        <div class="tc-jm">⚙️ &nbsp;JMeter: Use <strong>Transaction Controller</strong> to group requests</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 6. ITERATION ═══ -->
+  <div class="term t6">
+    <div class="term-rail"><div class="term-num">06</div><div class="term-line"></div></div>
+    <div class="term-card">
+      <div class="tc-head"><h2>Iteration</h2><span class="tc-icon">🔄</span></div>
+      <div class="tc-body">
+        <div class="tc-def" style="border-color:var(--c6);background:var(--c6b);">
+          One complete <strong>end-to-end journey</strong> of the user. Every Virtual User repeatedly executes the script scenario — each run is an iteration.
+        </div>
+        <div class="tc-example" style="background:var(--c6b);border:1px solid var(--c6d);">
+          E-commerce flow: <strong>Login → Search → View Product → Add to Cart → Checkout → Logout</strong> = <strong>1 Iteration</strong>.<br>
+          1 hour test, user repeats 20 times → <strong>20 iterations</strong>.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 7. THINK TIME ═══ -->
+  <div class="term t7">
+    <div class="term-rail"><div class="term-num">07</div><div class="term-line"></div></div>
+    <div class="term-card">
+      <div class="tc-head"><h2>Think Time</h2><span class="tc-icon">💭</span></div>
+      <div class="tc-body">
+        <div class="tc-def" style="border-color:var(--c7);background:var(--c7b);">
+          The <strong>pause a user takes between actions</strong>. Simulates real human behavior. Without think time, users are unrealistically fast → inaccurate load test results.
+        </div>
+        <div class="tc-example" style="background:var(--c7b);border:1px solid var(--c7d);">
+          Real user reads product details → <strong>waits 8s</strong> · Chooses size → <strong>waits 4s</strong> · Reviews cart → <strong>waits 6s</strong>
+        </div>
+        <div class="tc-jm">⚙️ &nbsp;JMeter: Use <strong>Constant / Gaussian / Uniform Timers</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 8. PACING ═══ -->
+  <div class="term t8">
+    <div class="term-rail"><div class="term-num">08</div><div class="term-line" style="opacity:0"></div></div>
+    <div class="term-card">
+      <div class="tc-head"><h2>Pacing</h2><span class="tc-icon">⏲️</span></div>
+      <div class="tc-body">
+        <div class="tc-def" style="border-color:var(--c8);background:var(--c8b);">
+          The <strong>delay between two complete iterations</strong>. Controls how frequently each user repeats the full scenario. Used to achieve the required <strong>TPS/RPS</strong>.
+        </div>
+        <div class="tc-formula" style="color:var(--c8);">Users = Iterations/sec × Pacing &nbsp; (Little's Law)</div>
+        <div class="tc-example" style="background:var(--c8b);border:1px solid var(--c8d);">
+          Each user performs <strong>1 full iteration every 30 seconds</strong> → Pacing = <strong>30s</strong>. Without pacing, TPS becomes too high or unrealistic.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PUTTING IT ALL TOGETHER ═══ -->
+  <div class="bigpic-head">
+    <span class="bigpic-head bp-icon">🎯</span>
+    <h2>Putting It All Together</h2>
+  </div>
+  <div class="bigpic">
+    <div class="bp-scenario">
+      <div class="bp-scenario-label">Scenario</div>
+      <p>Test an e-commerce site with <strong>200 virtual users</strong>. Each user performs a full business flow with <strong>5s think time</strong> between pages and <strong>20s pacing</strong>.</p>
+    </div>
+
+    <div class="bp-flow">
+      <div class="bp-flow-label">1 Iteration = Full User Journey</div>
+      <div class="bp-flow-steps">
+        <div class="bp-step" style="border-color:var(--c1d);"><span style="color:var(--c1);">👤</span> Login</div>
+        <span class="bp-arrow">→</span>
+        <div class="bp-step" style="border-color:var(--c3d);"><span style="color:var(--c3);">🔍</span> Search</div>
+        <span class="bp-arrow">→</span>
+        <div class="bp-step" style="border-color:var(--c4d);"><span style="color:var(--c4);">🛒</span> Add to Cart</div>
+        <span class="bp-arrow">→</span>
+        <div class="bp-step" style="border-color:var(--c5d);"><span style="color:var(--c5);">💳</span> Checkout</div>
+      </div>
+    </div>
+
+    <div class="bp-metrics">
+      <div class="bp-metric bm-users">
+        <span class="bm-val">200</span>
+        <span class="bm-label">Virtual Users</span>
+      </div>
+      <div class="bp-metric bm-tt">
+        <span class="bm-val">5s</span>
+        <span class="bm-label">Think Time</span>
+      </div>
+      <div class="bp-metric bm-pace">
+        <span class="bm-val">20s</span>
+        <span class="bm-label">Pacing</span>
+      </div>
+      <div class="bp-metric bm-tput">
+        <span class="bm-val">80 TPS</span>
+        <span class="bm-label">Throughput</span>
+      </div>
+      <div class="bp-metric bm-rt">
+        <span class="bm-val">1.5s</span>
+        <span class="bm-label">Avg Response Time</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <p><span class="fa">PERFORMANCE TESTING TERMINOLOGIES</span> &middot; Know the Terms &middot; Master the Craft &middot; Author: Angshuman Basak</p>
+  </div>
+
+</div>
+</body>
+</html>

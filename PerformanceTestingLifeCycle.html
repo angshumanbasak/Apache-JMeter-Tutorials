@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Performance Testing Life Cycle (PTLC)</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-dark: #0B0E17;
+    --bg-card: #131829;
+    --bg-card-alt: #1A1F35;
+    --c1: #FF5252; --c1-bg: rgba(255,82,82,0.07); --c1-border: rgba(255,82,82,0.2);
+    --c2: #FF9100; --c2-bg: rgba(255,145,0,0.07); --c2-border: rgba(255,145,0,0.2);
+    --c3: #FFD740; --c3-bg: rgba(255,215,64,0.07); --c3-border: rgba(255,215,64,0.2);
+    --c4: #00E676; --c4-bg: rgba(0,230,118,0.07); --c4-border: rgba(0,230,118,0.2);
+    --c5: #00E5FF; --c5-bg: rgba(0,229,255,0.07); --c5-border: rgba(0,229,255,0.2);
+    --c6: #448AFF; --c6-bg: rgba(68,138,255,0.07); --c6-border: rgba(68,138,255,0.2);
+    --c7: #B388FF; --c7-bg: rgba(179,136,255,0.07); --c7-border: rgba(179,136,255,0.2);
+    --text-primary: #E8EAF6;
+    --text-secondary: #9499B3;
+    --text-muted: #5C6180;
+    --border-subtle: rgba(255,255,255,0.06);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    font-family: 'Sora', sans-serif;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+  .infographic {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 60px 32px 80px;
+    position: relative; z-index: 1;
+  }
+
+  /* BG */
+  .bg-grid {
+    position:fixed; inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.016) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.016) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events:none; z-index:0;
+  }
+  .bg-blob { position:fixed; border-radius:50%; filter:blur(130px); pointer-events:none; z-index:0; }
+  .bg-blob.a { width:500px; height:500px; background:rgba(255,82,82,0.04); top:-80px; left:-100px; }
+  .bg-blob.b { width:400px; height:400px; background:rgba(0,229,255,0.04); bottom:400px; right:-80px; }
+  .bg-blob.c { width:350px; height:350px; background:rgba(179,136,255,0.04); bottom:-50px; left:25%; }
+
+  /* HERO */
+  .hero { text-align:center; margin-bottom:56px; }
+  .hero-badge {
+    display:inline-block;
+    font-family:'Space Mono',monospace;
+    font-size:11px; letter-spacing:3px; text-transform:uppercase;
+    color: var(--c5);
+    border:1px solid rgba(0,229,255,0.3);
+    padding:6px 20px; border-radius:40px;
+    background:rgba(0,229,255,0.05);
+    margin-bottom:24px;
+  }
+  .hero h1 {
+    font-size: clamp(32px,5vw,56px);
+    font-weight:800; letter-spacing:-1.5px; line-height:1.1;
+    margin-bottom:12px;
+    background: linear-gradient(135deg, #fff 0%, var(--c1) 30%, var(--c3) 50%, var(--c4) 70%, var(--c5) 85%, var(--c7) 100%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  }
+  .hero-sub {
+    font-size:15px; color:var(--text-secondary); max-width:720px; margin:12px auto 0; line-height:1.75;
+  }
+  .hero-phases {
+    display:inline-flex; align-items:center; gap:6px;
+    margin-top:20px;
+    font-family:'Space Mono',monospace;
+    font-size:12px; color:var(--text-muted);
+  }
+  .hero-phases .ph-dot {
+    width:10px; height:10px; border-radius:50%;
+  }
+
+  /* ── TIMELINE SPINE ── */
+  .timeline { position:relative; padding-left:0; }
+
+  /* ── PHASE CARD ── */
+  .phase {
+    display:grid;
+    grid-template-columns: 72px 1fr;
+    gap: 0;
+    margin-bottom: 28px;
+    position: relative;
+  }
+
+  /* Left: number + connector */
+  .phase-rail {
+    display:flex; flex-direction:column; align-items:center;
+    padding-top: 28px;
+  }
+  .phase-num {
+    font-family:'Space Mono',monospace;
+    font-size:15px; font-weight:700;
+    width:48px; height:48px; border-radius:14px;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0; z-index:2;
+    color: var(--bg-dark);
+  }
+  .phase-connector {
+    flex:1; width:2px; margin-top:6px;
+    opacity:0.25;
+  }
+
+  /* Right: card */
+  .phase-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 20px;
+    overflow: hidden;
+    transition: transform 0.25s, box-shadow 0.25s;
+  }
+  .phase-card:hover { transform: translateY(-3px); }
+
+  .pc-top {
+    display:flex; align-items:center; gap:14px;
+    padding: 24px 28px 20px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .pc-top h2 { font-size:21px; font-weight:700; letter-spacing:-0.3px; flex:1; }
+  .pc-top .pc-emoji { font-size:26px; }
+
+  .pc-body { padding: 24px 28px 28px; }
+
+  /* Subsections inside card */
+  .pc-section { margin-bottom: 22px; }
+  .pc-section:last-child { margin-bottom: 0; }
+
+  .pc-label {
+    font-family:'Space Mono',monospace;
+    font-size:10.5px; letter-spacing:1.8px; text-transform:uppercase;
+    margin-bottom:10px; font-weight:700;
+  }
+
+  .pc-grid {
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+  }
+  .pc-chip {
+    font-size:13px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    line-height:1.5;
+    color: var(--text-secondary);
+  }
+  .pc-chip strong { color: var(--text-primary); font-weight:600; }
+
+  .pc-tags {
+    display:flex; flex-wrap:wrap; gap:8px;
+  }
+  .pc-tag {
+    font-size:12.5px; font-weight:600;
+    padding: 7px 16px; border-radius:40px;
+  }
+
+  .pc-example {
+    border-radius:12px;
+    padding:16px 20px;
+    font-size:13.5px;
+    line-height:1.65;
+    color: var(--text-secondary);
+    position:relative;
+    margin-top:6px;
+  }
+  .pc-example::before {
+    content:'EXAMPLE';
+    font-family:'Space Mono',monospace;
+    font-size:9.5px; letter-spacing:1.5px;
+    position:absolute; top:-8px; left:16px;
+    padding:0 6px;
+    background: var(--bg-card);
+  }
+  .pc-example strong { color:var(--text-primary); }
+
+  .pc-why {
+    font-size:13.5px;
+    color:var(--text-secondary);
+    line-height:1.7;
+    padding: 12px 18px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.015);
+    border: 1px solid var(--border-subtle);
+  }
+  .pc-why strong { color: var(--text-primary); }
+
+  /* Color Variants */
+  .p1 .phase-num { background:var(--c1); }
+  .p1 .phase-connector { background:var(--c1); }
+  .p1 .pc-label { color:var(--c1); }
+  .p1 .pc-chip { background:var(--c1-bg); border:1px solid var(--c1-border); }
+  .p1 .pc-tag { background:var(--c1-bg); border:1px solid var(--c1-border); color:var(--c1); }
+  .p1 .pc-example { background:var(--c1-bg); border:1px solid var(--c1-border); }
+  .p1 .pc-example::before { color:var(--c1); }
+  .p1 .phase-card:hover { box-shadow: 0 0 40px rgba(255,82,82,0.08); }
+
+  .p2 .phase-num { background:var(--c2); }
+  .p2 .phase-connector { background:var(--c2); }
+  .p2 .pc-label { color:var(--c2); }
+  .p2 .pc-chip { background:var(--c2-bg); border:1px solid var(--c2-border); }
+  .p2 .pc-tag { background:var(--c2-bg); border:1px solid var(--c2-border); color:var(--c2); }
+  .p2 .pc-example { background:var(--c2-bg); border:1px solid var(--c2-border); }
+  .p2 .pc-example::before { color:var(--c2); }
+  .p2 .phase-card:hover { box-shadow: 0 0 40px rgba(255,145,0,0.08); }
+
+  .p3 .phase-num { background:var(--c3); }
+  .p3 .phase-connector { background:var(--c3); }
+  .p3 .pc-label { color:var(--c3); }
+  .p3 .pc-chip { background:var(--c3-bg); border:1px solid var(--c3-border); }
+  .p3 .pc-tag { background:var(--c3-bg); border:1px solid var(--c3-border); color:var(--c3); }
+  .p3 .pc-example { background:var(--c3-bg); border:1px solid var(--c3-border); }
+  .p3 .pc-example::before { color:var(--c3); }
+  .p3 .phase-card:hover { box-shadow: 0 0 40px rgba(255,215,64,0.08); }
+
+  .p4 .phase-num { background:var(--c4); }
+  .p4 .phase-connector { background:var(--c4); }
+  .p4 .pc-label { color:var(--c4); }
+  .p4 .pc-chip { background:var(--c4-bg); border:1px solid var(--c4-border); }
+  .p4 .pc-tag { background:var(--c4-bg); border:1px solid var(--c4-border); color:var(--c4); }
+  .p4 .pc-example { background:var(--c4-bg); border:1px solid var(--c4-border); }
+  .p4 .pc-example::before { color:var(--c4); }
+  .p4 .phase-card:hover { box-shadow: 0 0 40px rgba(0,230,118,0.08); }
+
+  .p5 .phase-num { background:var(--c5); }
+  .p5 .phase-connector { background:var(--c5); }
+  .p5 .pc-label { color:var(--c5); }
+  .p5 .pc-chip { background:var(--c5-bg); border:1px solid var(--c5-border); }
+  .p5 .pc-tag { background:var(--c5-bg); border:1px solid var(--c5-border); color:var(--c5); }
+  .p5 .pc-example { background:var(--c5-bg); border:1px solid var(--c5-border); }
+  .p5 .pc-example::before { color:var(--c5); }
+  .p5 .phase-card:hover { box-shadow: 0 0 40px rgba(0,229,255,0.08); }
+
+  .p6 .phase-num { background:var(--c6); }
+  .p6 .phase-connector { background:var(--c6); }
+  .p6 .pc-label { color:var(--c6); }
+  .p6 .pc-chip { background:var(--c6-bg); border:1px solid var(--c6-border); }
+  .p6 .pc-tag { background:var(--c6-bg); border:1px solid var(--c6-border); color:var(--c6); }
+  .p6 .pc-example { background:var(--c6-bg); border:1px solid var(--c6-border); }
+  .p6 .pc-example::before { color:var(--c6); }
+  .p6 .phase-card:hover { box-shadow: 0 0 40px rgba(68,138,255,0.08); }
+
+  .p7 .phase-num { background:var(--c7); }
+  .p7 .phase-connector { background:var(--c7); }
+  .p7 .pc-label { color:var(--c7); }
+  .p7 .pc-chip { background:var(--c7-bg); border:1px solid var(--c7-border); }
+  .p7 .pc-tag { background:var(--c7-bg); border:1px solid var(--c7-border); color:var(--c7); }
+  .p7 .pc-example { background:var(--c7-bg); border:1px solid var(--c7-border); }
+  .p7 .pc-example::before { color:var(--c7); }
+  .p7 .phase-card:hover { box-shadow: 0 0 40px rgba(179,136,255,0.08); }
+
+  /* ── SUMMARY TABLE ── */
+  .summary-header {
+    display:flex; align-items:center; gap:16px;
+    margin: 56px 0 24px;
+  }
+  .summary-header .sh-icon {
+    font-family:'Space Mono',monospace;
+    font-size:13px; font-weight:700;
+    color:var(--bg-dark); background:var(--c5);
+    width:36px; height:36px; border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .summary-header h2 { font-size:24px; font-weight:700; }
+
+  .summary-table-wrap {
+    border-radius:16px; overflow:hidden;
+    border:1px solid var(--border-subtle);
+  }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  thead th {
+    background:var(--bg-card-alt);
+    font-family:'Space Mono',monospace;
+    font-size:10.5px; letter-spacing:1.5px; text-transform:uppercase;
+    color:var(--c5); padding:14px 18px; text-align:left;
+    border-bottom:1px solid var(--border-subtle);
+  }
+  tbody tr { background:var(--bg-card); }
+  tbody tr:nth-child(even) { background:var(--bg-card-alt); }
+  tbody td {
+    padding:13px 18px;
+    border-bottom:1px solid var(--border-subtle);
+    color:var(--text-secondary); line-height:1.55; vertical-align:top;
+  }
+  tbody tr:last-child td { border-bottom:none; }
+  tbody td:first-child { font-weight:700; color:var(--text-primary); white-space:nowrap; }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; vertical-align:middle; }
+  .d1{background:var(--c1)}.d2{background:var(--c2)}.d3{background:var(--c3)}.d4{background:var(--c4)}.d5{background:var(--c5)}.d6{background:var(--c6)}.d7{background:var(--c7)}
+
+  @media (max-width:700px) {
+    .phase { grid-template-columns:52px 1fr; }
+    .phase-num { width:40px; height:40px; font-size:13px; border-radius:11px; }
+    .pc-top { padding:20px 20px 16px; }
+    .pc-body { padding:20px; }
+    .pc-grid { grid-template-columns:1fr; }
+    table { font-size:12px; }
+    thead th, tbody td { padding:11px 12px; }
+  }
+
+  /* Footer */
+  .footer {
+    text-align:center; margin-top:64px;
+    padding-top:28px; border-top:1px solid var(--border-subtle);
+  }
+  .footer p {
+    font-family:'Space Mono',monospace;
+    font-size:12px; color:var(--text-muted); letter-spacing:1px;
+  }
+  .footer .fa { color:var(--c5); }
+</style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-blob a"></div>
+  <div class="bg-blob b"></div>
+  <div class="bg-blob c"></div>
+
+  <div class="infographic">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-badge">LifeCycle · Performance Testing 101</div>
+      <h1>Performance Testing Life Cycle</h1>
+      <p class="hero-sub">
+        The PTLC consists of <strong>7 well-defined phases</strong> — each ensuring that testing is systematic, traceable, and aligned with business expectations.
+      </p>
+      <div class="hero-phases">
+        <span class="ph-dot" style="background:var(--c1)"></span>
+        <span class="ph-dot" style="background:var(--c2)"></span>
+        <span class="ph-dot" style="background:var(--c3)"></span>
+        <span class="ph-dot" style="background:var(--c4)"></span>
+        <span class="ph-dot" style="background:var(--c5)"></span>
+        <span class="ph-dot" style="background:var(--c6)"></span>
+        <span class="ph-dot" style="background:var(--c7)"></span>
+        &nbsp; 7 Phases &middot; End to End
+      </div>
+    </div>
+
+    <div class="timeline">
+
+      <!-- ═══ PHASE 1 ═══ -->
+      <div class="phase p1">
+        <div class="phase-rail">
+          <div class="phase-num">01</div>
+          <div class="phase-connector"></div>
+        </div>
+        <div class="phase-card">
+          <div class="pc-top">
+            <h2>Risk Assessment</h2>
+            <span class="pc-emoji">🛡️</span>
+          </div>
+          <div class="pc-body">
+            <div class="pc-section">
+              <div class="pc-label">What Happens</div>
+              <div class="pc-grid">
+                <div class="pc-chip"><strong>Business-Critical Features</strong> — login, search, checkout, payments</div>
+                <div class="pc-chip"><strong>Performance Risks</strong> — high load, slow response, downtime, scaling failures</div>
+                <div class="pc-chip"><strong>SLA / SLO Expectations</strong> — define performance thresholds</div>
+                <div class="pc-chip"><strong>Business Impact</strong> — revenue loss if performance fails</div>
+              </div>
+            </div>
+            <div class="pc-section">
+              <div class="pc-label">Why It Matters</div>
+              <div class="pc-why">
+                Helps stakeholders understand <strong>which areas need priority</strong>. Ensures performance testing <strong>aligns with business goals</strong> and prevents last-minute escalations.
+              </div>
+            </div>
+            <div class="pc-section">
+              <div class="pc-example">
+                <strong>E-commerce checkout failure during peak sale</strong> → Millions in revenue loss → Prioritize checkout flow for Load &amp; Stress testing.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ PHASE 2 ═══ -->
+      <div class="phase p2">
+        <div class="phase-rail">
+          <div class="phase-num">02</div>
+          <div class="phase-connector"></div>
+        </div>
+        <div class="phase-card">
+          <div class="pc-top">
+            <h2>Requirement Gathering & Analysis</h2>
+            <span class="pc-emoji">📋</span>
+          </div>
+          <div class="pc-body">
+            <div class="pc-section">
+              <div class="pc-label">What You Gather</div>
+              <div class="pc-tags">
+                <span class="pc-tag">Concurrent Users</span>
+                <span class="pc-tag">Peak / Avg Load</span>
+                <span class="pc-tag">SLA Response Time</span>
+                <span class="pc-tag">Throughput</span>
+                <span class="pc-tag">Error % Threshold</span>
+                <span class="pc-tag">App Architecture</span>
+                <span class="pc-tag">Server Config</span>
+                <span class="pc-tag">DB Type</span>
+                <span class="pc-tag">3rd Party Deps</span>
+                <span class="pc-tag">Env Details</span>
+              </div>
+            </div>
+            <div class="pc-section">
+              <div class="pc-label">Why It Matters</div>
+              <div class="pc-why">
+                You cannot design a valid workload <strong>without clear requirements</strong>. Helps avoid unrealistic or vague performance expectations.
+              </div>
+            </div>
+            <div class="pc-section">
+              <div class="pc-example">
+                <strong>"Login API must respond within 2 seconds for 5,000 concurrent users."</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ PHASE 3 ═══ -->
+      <div class="phase p3">
+        <div class="phase-rail">
+          <div class="phase-num">03</div>
+          <div class="phase-connector"></div>
+        </div>
+        <div class="phase-card">
+          <div class="pc-top">
+            <h2>Performance Test Planning</h2>
+            <span class="pc-emoji">📐</span>
+          </div>
+          <div class="pc-body">
+            <div class="pc-section">
+              <div class="pc-label">What's in the Test Plan</div>
+              <div class="pc-grid">
+                <div class="pc-chip"><strong>Scope</strong> — what will / won't be tested</div>
+                <div class="pc-chip"><strong>Test Types</strong> — Load, Stress, Spike, Soak, Breakpoint</div>
+                <div class="pc-chip"><strong>Entry / Exit Criteria</strong> — conditions to start &amp; stop</div>
+                <div class="pc-chip"><strong>Tools</strong> — JMeter, Gatling, Locust</div>
+                <div class="pc-chip"><strong>Monitoring</strong> — Grafana, Dynatrace, New Relic</div>
+                <div class="pc-chip"><strong>Timeline</strong> — milestones, risks, dependencies</div>
+              </div>
+            </div>
+            <div class="pc-section">
+              <div class="pc-label">Why It Matters</div>
+              <div class="pc-why">
+                Provides a <strong>clear roadmap</strong>. Helps stakeholders agree on testing approach. <strong>Minimizes misunderstandings.</strong>
+              </div>
+            </div>
+            <div class="pc-section">
+              <div class="pc-example">
+                <strong>JMeter + InfluxDB + Grafana</strong> for real-time monitoring. Load Test @ 5K users, Stress Test @ 10K users.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ PHASE 4 ═══ -->
+      <div class="phase p4">
+        <div class="phase-rail">
+          <div class="phase-num">04</div>
+          <div class="phase-connector"></div>
+        </div>
+        <div class="phase-card">
+          <div class="pc-top">
+            <h2>Performance Test Design</h2>
+            <span class="pc-emoji">⚙️</span>
+          </div>
+          <div class="pc-body">
+            <div class="pc-section">
+              <div class="pc-label">Activities</div>
+              <div class="pc-grid">
+                <div class="pc-chip"><strong>Script Transactions</strong> — Login, Search, Add to Cart, Checkout</div>
+                <div class="pc-chip"><strong>Create Scripts</strong> — Parameterization, think time, pacing, assertions</div>
+                <div class="pc-chip"><strong>Prepare Test Data</strong> — User accounts, product IDs, session tokens</div>
+                <div class="pc-chip"><strong>Configure Environment</strong> — App servers, load generators, DB replicas</div>
+              </div>
+            </div>
+            <div class="pc-section">
+              <div class="pc-label">Why It Matters</div>
+              <div class="pc-why">
+                Correct script design ensures <strong>realistic user simulation</strong>. Accurate test data <strong>prevents false errors</strong>.
+              </div>
+            </div>
+            <div class="pc-section">
+              <div class="pc-example">
+                Login script must include <strong>dynamic token capture</strong> and <strong>correlation of session IDs</strong>.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ PHASE 5 ═══ -->
+      <div class="phase p5">
+        <div class="phase-rail">
+          <div class="phase-num">05</div>
+          <div class="phase-connector"></div>
+        </div>
+        <div class="phase-card">
+          <div class="pc-top">
+            <h2>Workload Modelling</h2>
+            <span class="pc-emoji">🎯</span>
+          </div>
+          <div class="pc-body">
+            <div class="pc-section">
+              <div class="pc-label">The Heart of Performance Testing</div>
+              <div class="pc-grid">
+                <div class="pc-chip"><strong>Define Load Model</strong> — concurrent users, ramp-up/down, steady state</div>
+                <div class="pc-chip"><strong>Load Conditions</strong> — peak, average, spike, soak duration</div>
+                <div class="pc-chip"><strong>Throughput Targets</strong> — expected TPS per transaction</div>
+                <div class="pc-chip"><strong>Data Sources</strong> — Prod logs, GA, Kibana, AppDynamics</div>
+              </div>
+            </div>
+            <div class="pc-section">
+              <div class="pc-label">Why It Matters</div>
+              <div class="pc-why">
+                <strong>Incorrect workload = Invalid test results.</strong> Ensures real-world simulation of traffic patterns.
+              </div>
+            </div>
+            <div class="pc-section">
+              <div class="pc-example">
+                <strong>2,000 users normal → 10,000 during sale.</strong> Load test: 10K · Stress test: 15K · Spike test: instant jump 2K → 10K.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ PHASE 6 ═══ -->
+      <div class="phase p6">
+        <div class="phase-rail">
+          <div class="phase-num">06</div>
+          <div class="phase-connector"></div>
+        </div>
+        <div class="phase-card">
+          <div class="pc-top">
+            <h2>Execution & Result Analysis</h2>
+            <span class="pc-emoji">🔬</span>
+          </div>
+          <div class="pc-body">
+            <div class="pc-section">
+              <div class="pc-label">Execution</div>
+              <div class="pc-tags">
+                <span class="pc-tag">Run Load / Stress / Spike / Soak</span>
+                <span class="pc-tag">Monitor CPU</span>
+                <span class="pc-tag">Monitor Memory</span>
+                <span class="pc-tag">Network / Disk I/O</span>
+                <span class="pc-tag">GC Logs</span>
+                <span class="pc-tag">DB Queries</span>
+              </div>
+            </div>
+            <div class="pc-section">
+              <div class="pc-label">Result Analysis</div>
+              <div class="pc-tags">
+                <span class="pc-tag">Response Time (P90/P95)</span>
+                <span class="pc-tag">Throughput</span>
+                <span class="pc-tag">Error %</span>
+                <span class="pc-tag">Slow DB Queries</span>
+                <span class="pc-tag">Thread Pool Exhaustion</span>
+                <span class="pc-tag">CPU Throttling</span>
+                <span class="pc-tag">Memory Leaks</span>
+              </div>
+            </div>
+            <div class="pc-section">
+              <div class="pc-example">
+                Load Test @ 5,000 users → CPU 90% · Response time 1s → 4s · <strong>Bottleneck: DB query not using index.</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ PHASE 7 ═══ -->
+      <div class="phase p7">
+        <div class="phase-rail">
+          <div class="phase-num">07</div>
+          <div class="phase-connector" style="opacity:0"></div>
+        </div>
+        <div class="phase-card">
+          <div class="pc-top">
+            <h2>Reporting & Recommendations</h2>
+            <span class="pc-emoji">📊</span>
+          </div>
+          <div class="pc-body">
+            <div class="pc-section">
+              <div class="pc-label">What's in the Report</div>
+              <div class="pc-grid">
+                <div class="pc-chip"><strong>Test Summary</strong> — tests executed, load conditions, observed SLAs</div>
+                <div class="pc-chip"><strong>Bottlenecks</strong> — slow queries, high CPU, thread starvation, memory leaks</div>
+                <div class="pc-chip"><strong>Recommendations</strong> — DB indexing, caching, thread pools, code optimization</div>
+                <div class="pc-chip"><strong>Final Verdict</strong> — Performance Ready or Requires Fix &amp; Re-test</div>
+              </div>
+            </div>
+            <div class="pc-section">
+              <div class="pc-label">Why It Matters</div>
+              <div class="pc-why">
+                Helps developers &amp; architects understand issues clearly. <strong>Supports go/no-go decision</strong> before production release.
+              </div>
+            </div>
+            <div class="pc-section">
+              <div class="pc-example">
+                <strong>Add Redis caching</strong> to reduce DB load and improve response time by 60%.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /timeline -->
+
+    <!-- ═══ SUMMARY TABLE ═══ -->
+    <div class="summary-header">
+      <div class="sh-icon">∑</div>
+      <h2>Performance Testing Life Cycle — At a Glance</h2>
+    </div>
+    <div class="summary-table-wrap">
+      <table>
+        <thead>
+          <tr><th>Phase</th><th>What Happens</th><th>Why It Matters</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="dot d1"></span>Risk Assessment</td><td>Identify performance risks</td><td>Prioritize critical areas</td></tr>
+          <tr><td><span class="dot d2"></span>Requirement Analysis</td><td>Gather user load, SLA, architecture</td><td>Build realistic performance goals</td></tr>
+          <tr><td><span class="dot d3"></span>Test Planning</td><td>Prepare strategy, scope, tools</td><td>Align stakeholders with plan</td></tr>
+          <tr><td><span class="dot d4"></span>Test Design</td><td>Develop scripts, test data</td><td>Ensure realistic simulation</td></tr>
+          <tr><td><span class="dot d5"></span>Workload Modelling</td><td>Create load patterns</td><td>Accurately mimic real usage</td></tr>
+          <tr><td><span class="dot d6"></span>Execution &amp; Analysis</td><td>Run tests, monitor systems</td><td>Find bottlenecks</td></tr>
+          <tr><td><span class="dot d7"></span>Reporting</td><td>Document findings, suggest fixes</td><td>Guide optimization</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p><span class="fa">PTLC</span> &middot; Plan It &middot; Test It &middot; Fix It &middot; Ship It &middot; Author: Angshuman Basak</p>
+    </div>
+
+  </div>
+</body>
+</html>

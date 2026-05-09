@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JMeter Execution Order</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Space+Mono:wght@400;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#080B13;--bg-card:#101524;--bg-alt:#161C30;--bg-code:#0A0D18;
+    --c1:#EF5350;--c2:#FFA726;--c3:#FFEE58;--c4:#66BB6A;--c5:#26C6DA;--c6:#42A5F5;--c7:#7E57C2;--c8:#EC407A;--c9:#AB47BC;
+    --c1b:rgba(239,83,80,.06);--c1d:rgba(239,83,80,.18);
+    --c2b:rgba(255,167,38,.06);--c2d:rgba(255,167,38,.18);
+    --c3b:rgba(255,238,88,.05);--c3d:rgba(255,238,88,.15);
+    --c4b:rgba(102,187,106,.06);--c4d:rgba(102,187,106,.18);
+    --c5b:rgba(38,198,218,.06);--c5d:rgba(38,198,218,.18);
+    --c6b:rgba(66,165,245,.06);--c6d:rgba(66,165,245,.18);
+    --c7b:rgba(126,87,194,.06);--c7d:rgba(126,87,194,.18);
+    --c8b:rgba(236,64,122,.06);--c8d:rgba(236,64,122,.18);
+    --c9b:rgba(171,71,188,.06);--c9d:rgba(171,71,188,.18);
+    --tp:#E8EAF6;--ts:#8E93AD;--tm:#555A72;--border:rgba(255,255,255,.055);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--tp);font-family:'Sora',sans-serif;line-height:1.6;overflow-x:hidden;}
+  .page{max-width:1100px;margin:0 auto;padding:60px 32px 80px;position:relative;z-index:1;}
+  .bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.013) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.013) 1px,transparent 1px);background-size:56px 56px;pointer-events:none;z-index:0;}
+  .bg-blob{position:fixed;border-radius:50%;filter:blur(140px);pointer-events:none;z-index:0;}
+  .bg-blob.a{width:480px;height:480px;background:rgba(239,83,80,.035);top:-80px;left:-100px;}
+  .bg-blob.b{width:380px;height:380px;background:rgba(66,165,245,.03);bottom:350px;right:-80px;}
+  .bg-blob.c{width:320px;height:320px;background:rgba(126,87,194,.03);bottom:-30px;left:30%;}
+
+  /* HERO */
+  .hero{text-align:center;margin-bottom:48px;}
+  .hero-badge{display:inline-block;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--c6);border:1px solid rgba(66,165,245,.3);padding:6px 20px;border-radius:40px;background:rgba(66,165,245,.05);margin-bottom:24px;}
+  .hero h1{font-size:clamp(28px,4.5vw,50px);font-weight:800;letter-spacing:-1.5px;line-height:1.15;margin-bottom:14px;background:linear-gradient(135deg,#fff 0%,var(--c1) 25%,var(--c3) 45%,var(--c4) 60%,var(--c6) 80%,var(--c9) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .hero-sub{font-size:15px;color:var(--ts);max-width:740px;margin:0 auto;line-height:1.75;}
+  .hero-sub strong{color:var(--tp);}
+  .hero-why{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:20px;}
+  .hw-tag{font-size:11.5px;font-weight:600;padding:6px 14px;border-radius:30px;background:rgba(66,165,245,.06);border:1px solid rgba(66,165,245,.18);color:var(--c6);}
+
+  /* ═══ FLOW VISUAL ═══ */
+  .flow-section{margin-bottom:48px;}
+  .flow-label{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--c6);text-align:center;margin-bottom:20px;}
+
+  .flow-chain{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px;padding:28px 20px;background:var(--bg-card);border:1px solid var(--border);border-radius:20px;position:relative;overflow:hidden;}
+  .flow-chain::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--c1),var(--c2),var(--c3),var(--c4),var(--c5),var(--c6),var(--c7),var(--c8),var(--c9));}
+
+  .flow-node{font-family:'Space Mono',monospace;font-size:11.5px;font-weight:700;padding:10px 16px;border-radius:10px;white-space:nowrap;text-align:center;line-height:1.3;}
+  .flow-arrow{color:var(--tm);font-size:18px;flex-shrink:0;}
+
+  .fn1{background:var(--c1b);border:1px solid var(--c1d);color:var(--c1);}
+  .fn2{background:var(--c2b);border:1px solid var(--c2d);color:var(--c2);}
+  .fn3{background:var(--c3b);border:1px solid var(--c3d);color:var(--c3);}
+  .fn4{background:var(--c4b);border:1px solid var(--c4d);color:var(--c4);}
+  .fn5{background:var(--c5b);border:1px solid var(--c5d);color:var(--c5);}
+  .fn6{background:var(--c6b);border:1px solid var(--c6d);color:var(--c6);}
+  .fn7{background:var(--c7b);border:1px solid var(--c7d);color:var(--c7);}
+  .fn8{background:var(--c8b);border:1px solid var(--c8d);color:var(--c8);}
+  .fn9{background:var(--c9b);border:1px solid var(--c9d);color:var(--c9);}
+
+  /* ═══ ELEMENT CARD ═══ */
+  .elem{display:grid;grid-template-columns:68px 1fr;gap:0;margin-bottom:20px;}
+  .elem-rail{display:flex;flex-direction:column;align-items:center;padding-top:26px;}
+  .elem-num{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--bg);z-index:2;}
+  .elem-line{flex:1;width:2px;margin-top:6px;opacity:.2;}
+
+  .elem-card{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;overflow:hidden;transition:transform .25s;}
+  .elem-card:hover{transform:translateY(-3px);}
+
+  .ec-bar{height:3px;}
+  .ec-head{display:flex;align-items:center;gap:12px;padding:22px 24px 16px;border-bottom:1px solid var(--border);}
+  .ec-head h2{font-size:19px;font-weight:700;flex:1;letter-spacing:-.3px;}
+  .ec-head .ec-icon{font-size:22px;}
+  .ec-timing{font-family:'Space Mono',monospace;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;padding:4px 12px;border-radius:6px;flex-shrink:0;}
+
+  .ec-body{padding:20px 24px 24px;}
+
+  .ec-purpose{font-size:14px;color:var(--ts);line-height:1.7;margin-bottom:16px;}
+  .ec-purpose strong{color:var(--tp);font-weight:600;}
+
+  /* Mini table */
+  .ec-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:14px;border-radius:10px;overflow:hidden;}
+  .ec-table th{background:rgba(255,255,255,.03);font-family:'Space Mono',monospace;font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);}
+  .ec-table td{padding:8px 14px;border-bottom:1px solid var(--border);color:var(--ts);vertical-align:top;}
+  .ec-table tr:last-child td{border-bottom:none;}
+  .ec-table td:first-child{font-weight:600;color:var(--tp);white-space:nowrap;}
+
+  /* Example block */
+  .ec-example{border-radius:10px;padding:14px 18px;font-family:'Fira Code',monospace;font-size:12px;line-height:2;overflow-x:auto;position:relative;margin-top:12px;}
+  .ec-ex-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;position:absolute;top:-0px;left:14px;padding:5 6px;}
+
+  /* Note */
+  .ec-note{display:flex;gap:10px;align-items:flex-start;padding:12px 16px;border-radius:10px;margin-top:12px;font-size:12px;line-height:1.6;color:var(--ts);}
+  .ec-note strong{color:var(--tp);}
+  .ec-note-icon{font-size:14px;flex-shrink:0;margin-top:1px;}
+
+  /* Color variants */
+  .e1 .elem-num{background:var(--c1)}.e1 .elem-line{background:var(--c1)}.e1 .ec-bar{background:var(--c1)}.e1 .ec-head h2{color:var(--c1)}.e1 .ec-timing{background:var(--c1b);border:1px solid var(--c1d);color:var(--c1)}.e1 .ec-table th{color:var(--c1)}.e1 .ec-example{background:var(--c1b);border:1px solid var(--c1d);color:var(--c1)}.e1 .ec-ex-label{color:var(--c1);background:var(--bg-card)}.e1 .ec-note{background:var(--c1b);border:1px solid var(--c1d)}.e1:hover .elem-card{box-shadow:0 0 30px rgba(239,83,80,.06);}
+
+  .e2 .elem-num{background:var(--c2)}.e2 .elem-line{background:var(--c2)}.e2 .ec-bar{background:var(--c2)}.e2 .ec-head h2{color:var(--c2)}.e2 .ec-timing{background:var(--c2b);border:1px solid var(--c2d);color:var(--c2)}.e2 .ec-table th{color:var(--c2)}.e2 .ec-example{background:var(--c2b);border:1px solid var(--c2d);color:var(--c2)}.e2 .ec-ex-label{color:var(--c2);background:var(--bg-card)}.e2:hover .elem-card{box-shadow:0 0 30px rgba(255,167,38,.06);}
+
+  .e3 .elem-num{background:var(--c3);color:#1a1a1a}.e3 .elem-line{background:var(--c3)}.e3 .ec-bar{background:var(--c3)}.e3 .ec-head h2{color:var(--c3)}.e3 .ec-timing{background:var(--c3b);border:1px solid var(--c3d);color:var(--c3)}.e3 .ec-table th{color:var(--c3)}.e3 .ec-example{background:var(--c3b);border:1px solid var(--c3d);color:var(--c3)}.e3 .ec-ex-label{color:var(--c3);background:var(--bg-card)}.e3:hover .elem-card{box-shadow:0 0 30px rgba(255,238,88,.05);}
+
+  .e4 .elem-num{background:var(--c4)}.e4 .elem-line{background:var(--c4)}.e4 .ec-bar{background:var(--c4)}.e4 .ec-head h2{color:var(--c4)}.e4 .ec-timing{background:var(--c4b);border:1px solid var(--c4d);color:var(--c4)}.e4 .ec-table th{color:var(--c4)}.e4 .ec-example{background:var(--c4b);border:1px solid var(--c4d);color:var(--c4)}.e4 .ec-ex-label{color:var(--c4);background:var(--bg-card)}.e4:hover .elem-card{box-shadow:0 0 30px rgba(102,187,106,.06);}
+
+  .e5 .elem-num{background:var(--c5)}.e5 .elem-line{background:var(--c5)}.e5 .ec-bar{background:var(--c5)}.e5 .ec-head h2{color:var(--c5)}.e5 .ec-timing{background:var(--c5b);border:1px solid var(--c5d);color:var(--c5)}.e5 .ec-table th{color:var(--c5)}.e5 .ec-example{background:var(--c5b);border:1px solid var(--c5d);color:var(--c5)}.e5 .ec-ex-label{color:var(--c5);background:var(--bg-card)}.e5:hover .elem-card{box-shadow:0 0 30px rgba(38,198,218,.06);}
+
+  .e6 .elem-num{background:var(--c6)}.e6 .elem-line{background:var(--c6)}.e6 .ec-bar{background:var(--c6)}.e6 .ec-head h2{color:var(--c6)}.e6 .ec-timing{background:var(--c6b);border:1px solid var(--c6d);color:var(--c6)}.e6 .ec-table th{color:var(--c6)}.e6 .ec-example{background:var(--c6b);border:1px solid var(--c6d);color:var(--c6)}.e6 .ec-ex-label{color:var(--c6);background:var(--bg-card)}.e6:hover .elem-card{box-shadow:0 0 30px rgba(66,165,245,.06);}
+
+  .e7 .elem-num{background:var(--c7)}.e7 .elem-line{background:var(--c7)}.e7 .ec-bar{background:var(--c7)}.e7 .ec-head h2{color:var(--c7)}.e7 .ec-timing{background:var(--c7b);border:1px solid var(--c7d);color:var(--c7)}.e7 .ec-table th{color:var(--c7)}.e7 .ec-example{background:var(--c7b);border:1px solid var(--c7d);color:var(--c7)}.e7 .ec-ex-label{color:var(--c7);background:var(--bg-card)}.e7:hover .elem-card{box-shadow:0 0 30px rgba(126,87,194,.06);}
+
+  .e8 .elem-num{background:var(--c8)}.e8 .elem-line{background:var(--c8)}.e8 .ec-bar{background:var(--c8)}.e8 .ec-head h2{color:var(--c8)}.e8 .ec-timing{background:var(--c8b);border:1px solid var(--c8d);color:var(--c8)}.e8 .ec-table th{color:var(--c8)}.e8 .ec-example{background:var(--c8b);border:1px solid var(--c8d);color:var(--c8)}.e8 .ec-ex-label{color:var(--c8);background:var(--bg-card)}.e8:hover .elem-card{box-shadow:0 0 30px rgba(236,64,122,.06);}
+
+  .e9 .elem-num{background:var(--c9)}.e9 .elem-line{background:var(--c9)}.e9 .ec-bar{background:var(--c9)}.e9 .ec-head h2{color:var(--c9)}.e9 .ec-timing{background:var(--c9b);border:1px solid var(--c9d);color:var(--c9)}.e9 .ec-table th{color:var(--c9)}.e9 .ec-example{background:var(--c9b);border:1px solid var(--c9d);color:var(--c9)}.e9 .ec-ex-label{color:var(--c9);background:var(--bg-card)}.e9 .ec-note{background:var(--c9b);border:1px solid var(--c9d)}.e9:hover .elem-card{box-shadow:0 0 30px rgba(171,71,188,.06);}
+
+  /* ═══ REAL WORLD ANALOGY ═══ */
+  .analogy-head{display:flex;align-items:center;gap:14px;margin:48px 0 22px;}
+  .analogy-head h2{font-size:24px;font-weight:700;}
+  .analogy-icon{font-size:28px;}
+
+  .analogy-wrap{border-radius:16px;overflow:hidden;border:1px solid var(--border);}
+  .analogy-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .analogy-table thead th{background:var(--bg-alt);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--c6);padding:14px 18px;text-align:left;border-bottom:1px solid var(--border);}
+  .analogy-table tbody tr{background:var(--bg-card);}
+  .analogy-table tbody tr:nth-child(even){background:var(--bg-alt);}
+  .analogy-table tbody td{padding:11px 18px;border-bottom:1px solid var(--border);color:var(--ts);vertical-align:middle;}
+  .analogy-table tbody tr:last-child td{border-bottom:none;}
+  .analogy-table tbody td:first-child{font-weight:700;color:var(--tp);white-space:nowrap;}
+  .analogy-table .a-emoji{font-size:18px;text-align:center;width:40px;}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle;}
+  .d1{background:var(--c1)}.d2{background:var(--c2)}.d3{background:var(--c3)}.d4{background:var(--c4)}.d5{background:var(--c5)}.d6{background:var(--c6)}.d7{background:var(--c7)}.d8{background:var(--c8)}.d9{background:var(--c9)}
+
+  .footer{text-align:center;margin-top:64px;padding-top:28px;border-top:1px solid var(--border);}
+  .footer p{font-family:'Space Mono',monospace;font-size:12px;color:var(--tm);letter-spacing:1px;}
+  .footer .fa{color:var(--c6);}
+
+  @media(max-width:700px){
+    .elem{grid-template-columns:50px 1fr;}.elem-num{width:38px;height:38px;font-size:11px;}
+    .flow-node{font-size:10px;padding:7px 10px;}.flow-arrow{font-size:14px;}
+    .analogy-table{font-size:11.5px;}.analogy-table thead th,.analogy-table tbody td{padding:9px 12px;}
+  }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-blob a"></div>
+<div class="bg-blob b"></div>
+<div class="bg-blob c"></div>
+
+<div class="page">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-badge">Execution Reference · Apache JMeter</div>
+    <h1>JMeter Test Elements Execution Order</h1>
+    <p class="hero-sub">JMeter executes test elements in a <strong>specific sequence</strong> during runtime. Understanding this flow is critical for building reliable, well-structured test scripts.</p>
+    <div class="hero-why">
+      <span class="hw-tag">Debugging Scripts</span>
+      <span class="hw-tag">Correlation Handling</span>
+      <span class="hw-tag">Dynamic Parameterization</span>
+      <span class="hw-tag">Throughput Control</span>
+    </div>
+  </div>
+
+  <!-- ═══ FLOW VISUAL ═══ -->
+  <div class="flow-section">
+    <div class="flow-label">⭐ Execution Flow — Left to Right</div>
+    <div class="flow-chain">
+      <div class="flow-node fn1">Test Plan</div><span class="flow-arrow">→</span>
+      <div class="flow-node fn2">Config Elements</div><span class="flow-arrow">→</span>
+      <div class="flow-node fn3">Thread Group</div><span class="flow-arrow">→</span>
+      <div class="flow-node fn4">Pre-Processors</div><span class="flow-arrow">→</span>
+      <div class="flow-node fn5">Timers</div><span class="flow-arrow">→</span>
+      <div class="flow-node fn6">Samplers</div><span class="flow-arrow">→</span>
+      <div class="flow-node fn7">Post-Processors</div><span class="flow-arrow">→</span>
+      <div class="flow-node fn8">Assertions</div><span class="flow-arrow">→</span>
+      <div class="flow-node fn9">Listeners</div>
+    </div>
+  </div>
+
+  <!-- ═══ 1. TEST PLAN ═══ -->
+  <div class="elem e1">
+    <div class="elem-rail"><div class="elem-num">01</div><div class="elem-line"></div></div>
+    <div class="elem-card">
+      <div class="ec-bar"></div>
+      <div class="ec-head"><h2>Test Plan</h2><span class="ec-timing">Root Container</span><span class="ec-icon">📐</span></div>
+      <div class="ec-body">
+        <div class="ec-purpose">The <strong>top-most container</strong> in JMeter — the master blueprint of the entire performance test. Defines test structure, variables, user-defined properties, execution settings, and all child elements.</div>
+        <div class="ec-example"><div class="ec-ex-label">Structure</div>Test Plan<br>├── User Defined Variables<br>├── Thread Group<br>├── HTTP Request Defaults<br>└── Listener</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 2. CONFIG ELEMENTS ═══ -->
+  <div class="elem e2">
+    <div class="elem-rail"><div class="elem-num">02</div><div class="elem-line"></div></div>
+    <div class="elem-card">
+      <div class="ec-bar"></div>
+      <div class="ec-head"><h2>Configuration Elements</h2><span class="ec-timing">Before Requests</span><span class="ec-icon">⚙️</span></div>
+      <div class="ec-body">
+        <div class="ec-purpose">Provide <strong>default settings, shared configurations, and dynamic test data</strong>. Processed before any requests are executed.</div>
+        <table class="ec-table">
+          <thead><tr><th>Config Element</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>HTTP Request Defaults</td><td>Default server / domain / protocol</td></tr>
+            <tr><td>CSV Data Set Config</td><td>External test data</td></tr>
+            <tr><td>HTTP Cookie Manager</td><td>Session handling</td></tr>
+            <tr><td>HTTP Header Manager</td><td>API headers</td></tr>
+            <tr><td>JDBC Connection Config</td><td>DB connection</td></tr>
+            <tr><td>User Defined Variables</td><td>Global variables</td></tr>
+          </tbody>
+        </table>
+        <div class="ec-example"><div class="ec-ex-label">Example</div>HTTP Request Defaults<br>Server = demo.guru99.com<br>Protocol = https</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 3. THREAD GROUP ═══ -->
+  <div class="elem e3">
+    <div class="elem-rail"><div class="elem-num">03</div><div class="elem-line"></div></div>
+    <div class="elem-card">
+      <div class="ec-bar"></div>
+      <div class="ec-head"><h2>Thread Group</h2><span class="ec-timing">Load Generator</span><span class="ec-icon">👥</span></div>
+      <div class="ec-body">
+        <div class="ec-purpose">The <strong>heart of load generation</strong>. Controls virtual users, ramp-up period, iterations, and test duration.</div>
+        <table class="ec-table">
+          <thead><tr><th>Parameter</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td>Threads</td><td>Number of virtual users</td></tr>
+            <tr><td>Ramp-up</td><td>Time to start all users</td></tr>
+            <tr><td>Loop Count</td><td>Number of iterations</td></tr>
+          </tbody>
+        </table>
+        <div class="ec-example"><div class="ec-ex-label">Example</div>100 Users · Ramp-up = 50 sec · Loop = 5<br>→ 2 users/sec added, each repeats 5×</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 4. PRE-PROCESSORS ═══ -->
+  <div class="elem e4">
+    <div class="elem-rail"><div class="elem-num">04</div><div class="elem-line"></div></div>
+    <div class="elem-card">
+      <div class="ec-bar"></div>
+      <div class="ec-head"><h2>Pre-Processors</h2><span class="ec-timing">Before Sampler</span><span class="ec-icon">🔧</span></div>
+      <div class="ec-body">
+        <div class="ec-purpose">Execute <strong>before the sampler/request</strong>. Used for dynamic data preparation, request modification, token generation, encryption, and custom scripting.</div>
+        <table class="ec-table">
+          <thead><tr><th>Pre-Processor</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>User Parameters</td><td>Dynamic user data</td></tr>
+            <tr><td>JSR223 PreProcessor</td><td>Groovy scripting</td></tr>
+            <tr><td>BeanShell PreProcessor</td><td>Custom logic</td></tr>
+          </tbody>
+        </table>
+        <div class="ec-example"><div class="ec-ex-label">Example — Dynamic Timestamp</div>vars.put("timestamp", System.currentTimeMillis().toString())</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 5. TIMERS ═══ -->
+  <div class="elem e5">
+    <div class="elem-rail"><div class="elem-num">05</div><div class="elem-line"></div></div>
+    <div class="elem-card">
+      <div class="ec-bar"></div>
+      <div class="ec-head"><h2>Timers</h2><span class="ec-timing">Before Sampler</span><span class="ec-icon">⏱️</span></div>
+      <div class="ec-body">
+        <div class="ec-purpose">Add <strong>delay before requests</strong> to simulate human think time, pacing, and real user behavior. Without timers, JMeter fires requests unrealistically fast.</div>
+        <table class="ec-table">
+          <thead><tr><th>Timer</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>Constant Timer</td><td>Fixed delay</td></tr>
+            <tr><td>Uniform Random Timer</td><td>Random delay</td></tr>
+            <tr><td>Gaussian Random Timer</td><td>Realistic delay</td></tr>
+            <tr><td>Constant Throughput Timer</td><td>Maintain TPS</td></tr>
+          </tbody>
+        </table>
+        <div class="ec-example"><div class="ec-ex-label">Example</div>Constant Timer = 5000 ms → waits 5 sec before next request</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 6. SAMPLERS ═══ -->
+  <div class="elem e6">
+    <div class="elem-rail"><div class="elem-num">06</div><div class="elem-line"></div></div>
+    <div class="elem-card">
+      <div class="ec-bar"></div>
+      <div class="ec-head"><h2>Samplers</h2><span class="ec-timing">The Request</span><span class="ec-icon">📡</span></div>
+      <div class="ec-body">
+        <div class="ec-purpose">The <strong>actual requests sent to the server</strong>. This is where HTTP calls, API requests, DB queries, FTP, and JMS operations happen.</div>
+        <table class="ec-table">
+          <thead><tr><th>Sampler</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>HTTP Request</td><td>Web / API calls</td></tr>
+            <tr><td>JDBC Request</td><td>Database queries</td></tr>
+            <tr><td>FTP Request</td><td>FTP operations</td></tr>
+            <tr><td>JMS Publisher</td><td>Messaging</td></tr>
+          </tbody>
+        </table>
+        <div class="ec-example"><div class="ec-ex-label">Example</div>POST /login → HTTP Sampler</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 7. POST-PROCESSORS ═══ -->
+  <div class="elem e7">
+    <div class="elem-rail"><div class="elem-num">07</div><div class="elem-line"></div></div>
+    <div class="elem-card">
+      <div class="ec-bar"></div>
+      <div class="ec-head"><h2>Post-Processors</h2><span class="ec-timing">After Sampler</span><span class="ec-icon">🔍</span></div>
+      <div class="ec-body">
+        <div class="ec-purpose">Execute <strong>after the sampler response is received</strong>. Used for correlation, extracting dynamic values, parsing responses, and storing tokens/session IDs.</div>
+        <table class="ec-table">
+          <thead><tr><th>Post-Processor</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>Regex Extractor</td><td>Extract text patterns</td></tr>
+            <tr><td>JSON Extractor</td><td>Extract JSON fields</td></tr>
+            <tr><td>XPath Extractor</td><td>Extract XML data</td></tr>
+            <tr><td>JSR223 PostProcessor</td><td>Groovy logic</td></tr>
+          </tbody>
+        </table>
+        <div class="ec-example"><div class="ec-ex-label">Example — Extract Token</div>Response: {"token":"abc123"}<br>JSON Extractor → ${token} = abc123</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 8. ASSERTIONS ═══ -->
+  <div class="elem e8">
+    <div class="elem-rail"><div class="elem-num">08</div><div class="elem-line"></div></div>
+    <div class="elem-card">
+      <div class="ec-bar"></div>
+      <div class="ec-head"><h2>Assertions</h2><span class="ec-timing">After Sampler</span><span class="ec-icon">✅</span></div>
+      <div class="ec-body">
+        <div class="ec-purpose">Validate whether the response is correct. Define <strong>PASS or FAIL conditions</strong> for each request.</div>
+        <table class="ec-table">
+          <thead><tr><th>Assertion</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>Response Assertion</td><td>Validate response text</td></tr>
+            <tr><td>Duration Assertion</td><td>Validate response time</td></tr>
+            <tr><td>JSON Assertion</td><td>Validate JSON content</td></tr>
+            <tr><td>Size Assertion</td><td>Validate payload size</td></tr>
+          </tbody>
+        </table>
+        <div class="ec-example"><div class="ec-ex-label">Example</div>Check response contains "Login Successful"<br>If not found → Request marked FAILED</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 9. LISTENERS ═══ -->
+  <div class="elem e9">
+    <div class="elem-rail"><div class="elem-num">09</div><div class="elem-line" style="opacity:0"></div></div>
+    <div class="elem-card">
+      <div class="ec-bar"></div>
+      <div class="ec-head"><h2>Listeners</h2><span class="ec-timing">Results Collection</span><span class="ec-icon">📊</span></div>
+      <div class="ec-body">
+        <div class="ec-purpose">Collect and display test results — response time, TPS, errors, graphs, and percentiles.</div>
+        <table class="ec-table">
+          <thead><tr><th>Listener</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>View Results Tree</td><td>Debugging</td></tr>
+            <tr><td>Summary Report</td><td>Aggregated metrics</td></tr>
+            <tr><td>Aggregate Report</td><td>Statistical metrics</td></tr>
+            <tr><td>Backend Listener</td><td>Grafana / InfluxDB</td></tr>
+          </tbody>
+        </table>
+        <div class="ec-note">
+          <span class="ec-note-icon">⚠️</span>
+          <div><strong>Listeners consume memory.</strong> For high load tests: avoid heavy GUI listeners. Run Non-GUI mode, save CSV results, generate HTML report later.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ REAL WORLD ANALOGY ═══ -->
+  <div class="analogy-head">
+    <span class="analogy-icon">🍕</span>
+    <h2>Real-World Analogy — Ordering Food Online</h2>
+  </div>
+  <div class="analogy-wrap">
+    <table class="analogy-table">
+      <thead><tr><th>JMeter Component</th><th class="a-emoji"></th><th>Real-Life Analogy</th></tr></thead>
+      <tbody>
+        <tr><td><span class="dot d1"></span>Test Plan</td><td class="a-emoji">📋</td><td>Entire food order process</td></tr>
+        <tr><td><span class="dot d2"></span>Config Element</td><td class="a-emoji">🏪</td><td>Restaurant settings (menu, address)</td></tr>
+        <tr><td><span class="dot d3"></span>Thread Group</td><td class="a-emoji">👥</td><td>Customers placing orders</td></tr>
+        <tr><td><span class="dot d4"></span>Pre-Processor</td><td class="a-emoji">💳</td><td>Preparing payment details</td></tr>
+        <tr><td><span class="dot d5"></span>Timer</td><td class="a-emoji">💭</td><td>Customer thinking time (what to order)</td></tr>
+        <tr><td><span class="dot d6"></span>Sampler</td><td class="a-emoji">🛒</td><td>Placing the order</td></tr>
+        <tr><td><span class="dot d7"></span>Post-Processor</td><td class="a-emoji">🔖</td><td>Extracting order ID / confirmation</td></tr>
+        <tr><td><span class="dot d8"></span>Assertion</td><td class="a-emoji">✅</td><td>Verify order was successful</td></tr>
+        <tr><td><span class="dot d9"></span>Listener</td><td class="a-emoji">📱</td><td>Order tracking / delivery report</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <p><span class="fa">JMETER</span> &middot; Config → PreProcessor → Timer → Sampler → PostProcessor → Assertion → Listener &middot; Author: Angshuman Basak</p>
+  </div>
+
+</div>
+</body>
+</html>

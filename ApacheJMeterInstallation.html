@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How to Install Apache JMeter</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Space+Mono:wght@400;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#080B13;--bg-card:#101524;--bg-alt:#161C30;--bg-code:#0A0D18;
+    --mac:#40C4FF;--mac-b:rgba(64,196,255,.06);--mac-d:rgba(64,196,255,.18);
+    --win:#42A5F5;--win-b:rgba(66,165,245,.06);--win-d:rgba(66,165,245,.18);
+    --brew:#FFA726;--brew-b:rgba(255,167,38,.06);--brew-d:rgba(255,167,38,.18);
+    --manual:#BA68C8;--manual-b:rgba(186,104,200,.06);--manual-d:rgba(186,104,200,.18);
+    --java:#FF7043;--java-b:rgba(255,112,67,.06);--java-d:rgba(255,112,67,.18);
+    --green:#66BB6A;--green-b:rgba(102,187,106,.06);--green-d:rgba(102,187,106,.18);
+    --gold:#FFD54F;--gold-b:rgba(255,213,79,.05);--gold-d:rgba(255,213,79,.16);
+    --tp:#E8EAF6;--ts:#8E93AD;--tm:#555A72;--border:rgba(255,255,255,.055);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--tp);font-family:'Sora',sans-serif;line-height:1.6;overflow-x:hidden;}
+  .page{max-width:1100px;margin:0 auto;padding:60px 32px 80px;position:relative;z-index:1;}
+  .bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.013) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.013) 1px,transparent 1px);background-size:56px 56px;pointer-events:none;z-index:0;}
+  .bg-blob{position:fixed;border-radius:50%;filter:blur(140px);pointer-events:none;z-index:0;}
+  .bg-blob.a{width:480px;height:480px;background:rgba(64,196,255,.04);top:-80px;left:-100px;}
+  .bg-blob.b{width:380px;height:380px;background:rgba(255,167,38,.03);bottom:400px;right:-80px;}
+  .bg-blob.c{width:320px;height:320px;background:rgba(186,104,200,.025);bottom:-30px;left:25%;}
+
+  /* HERO */
+  .hero{text-align:center;margin-bottom:56px;}
+  .hero-badge{display:inline-block;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--mac);border:1px solid rgba(64,196,255,.3);padding:6px 20px;border-radius:40px;background:rgba(64,196,255,.05);margin-bottom:24px;}
+  .hero h1{font-size:clamp(30px,5vw,54px);font-weight:800;letter-spacing:-1.5px;line-height:1.1;margin-bottom:14px;background:linear-gradient(135deg,#fff 0%,var(--brew) 45%,var(--mac) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .hero-sub{font-size:15.5px;color:var(--ts);max-width:740px;margin:0 auto;line-height:1.75;}
+  .hero-sub strong{color:var(--tp);}
+  .hero-os{display:flex;justify-content:center;gap:16px;margin-top:22px;}
+  .hero-os-chip{font-family:'Space Mono',monospace;font-size:12px;font-weight:700;padding:8px 20px;border-radius:40px;display:flex;align-items:center;gap:8px;}
+  .ho-mac{background:var(--mac-b);border:1px solid var(--mac-d);color:var(--mac);}
+  .ho-win{background:var(--win-b);border:1px solid var(--win-d);color:var(--win);}
+
+  /* OS SECTION */
+  .os-section{margin-bottom:48px;}
+  .os-head{display:flex;align-items:center;gap:14px;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+  .os-icon{font-size:32px;}
+  .os-head h2{font-size:26px;font-weight:800;letter-spacing:-.5px;}
+  .os-head .os-tag{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:5px 14px;border-radius:30px;margin-left:auto;}
+
+  /* PREREQ CARD */
+  .prereq{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;overflow:hidden;margin-bottom:20px;}
+  .prereq::before{content:'';display:block;height:3px;}
+  .prereq-head{display:flex;align-items:center;gap:10px;padding:20px 24px 14px;font-size:16px;font-weight:700;}
+  .prereq-body{padding:0 24px 24px;}
+  .prereq-text{font-size:13.5px;color:var(--ts);line-height:1.7;margin-bottom:12px;}
+  .prereq-text strong{color:var(--tp);}
+
+  .code-block{font-family:'Fira Code',monospace;font-size:12.5px;background:var(--bg-code);border:1px solid var(--border);border-radius:10px;padding:12px 18px;margin-bottom:10px;overflow-x:auto;line-height:1.6;}
+  .code-block .cmd{color:var(--green);}
+  .code-block .comment{color:var(--tm);font-style:italic;}
+
+  /* METHOD CARD */
+  .method{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;overflow:hidden;margin-bottom:18px;transition:transform .25s;}
+  .method:hover{transform:translateY(-2px);}
+
+  .meth-bar{height:3px;}
+  .meth-head{display:flex;align-items:center;gap:12px;padding:22px 24px 16px;border-bottom:1px solid var(--border);}
+  .meth-badge{font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:5px 14px;border-radius:6px;}
+  .meth-head h3{font-size:18px;font-weight:700;flex:1;}
+  .meth-head .meth-icon{font-size:22px;}
+
+  .meth-body{padding:20px 24px 24px;}
+
+  /* STEP */
+  .step{display:flex;gap:14px;margin-bottom:18px;align-items:flex-start;}
+  .step:last-child{margin-bottom:0;}
+  .step-num{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+  .step-content{flex:1;}
+  .step-title{font-size:14px;font-weight:700;margin-bottom:4px;}
+  .step-desc{font-size:13px;color:var(--ts);line-height:1.65;margin-bottom:8px;}
+  .step-desc strong{color:var(--tp);font-weight:600;}
+
+  /* Method colors */
+  .m-brew .meth-bar{background:var(--brew);}
+  .m-brew .meth-badge{background:var(--brew-b);border:1px solid var(--brew-d);color:var(--brew);}
+  .m-brew .meth-head h3{color:var(--brew);}
+  .m-brew .step-num{background:var(--brew-b);border:1px solid var(--brew-d);color:var(--brew);}
+  .m-brew .step-title{color:var(--brew);}
+  .m-brew .code-block .cmd{color:var(--brew);}
+  .m-brew:hover{box-shadow:0 0 35px rgba(255,167,38,.06);}
+
+  .m-manual .meth-bar{background:var(--manual);}
+  .m-manual .meth-badge{background:var(--manual-b);border:1px solid var(--manual-d);color:var(--manual);}
+  .m-manual .meth-head h3{color:var(--manual);}
+  .m-manual .step-num{background:var(--manual-b);border:1px solid var(--manual-d);color:var(--manual);}
+  .m-manual .step-title{color:var(--manual);}
+  .m-manual .code-block .cmd{color:var(--manual);}
+  .m-manual:hover{box-shadow:0 0 35px rgba(186,104,200,.06);}
+
+  .m-win .meth-bar{background:var(--win);}
+  .m-win .meth-badge{background:var(--win-b);border:1px solid var(--win-d);color:var(--win);}
+  .m-win .meth-head h3{color:var(--win);}
+  .m-win .step-num{background:var(--win-b);border:1px solid var(--win-d);color:var(--win);}
+  .m-win .step-title{color:var(--win);}
+  .m-win .code-block .cmd{color:var(--win);}
+  .m-win:hover{box-shadow:0 0 35px rgba(66,165,245,.06);}
+
+  /* TIP BOX */
+  .tip-box{display:flex;gap:10px;align-items:flex-start;padding:14px 18px;border-radius:10px;margin-top:10px;font-size:12.5px;color:var(--ts);line-height:1.6;}
+  .tip-box strong{color:var(--tp);}
+  .tip-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+  .tip-brew{background:var(--brew-b);border:1px solid var(--brew-d);}
+  .tip-manual{background:var(--manual-b);border:1px solid var(--manual-d);}
+  .tip-green{background:var(--green-b);border:1px solid var(--green-d);}
+
+  /* ENV TABLE */
+  .env-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px;margin-bottom:8px;}
+  .env-table td{padding:8px 12px;border:1px solid var(--border);}
+  .env-table td:first-child{font-family:'Fira Code',monospace;font-weight:600;color:var(--gold);white-space:nowrap;width:140px;}
+  .env-table td:last-child{color:var(--ts);font-family:'Fira Code',monospace;font-size:11.5px;}
+
+  /* FINAL LAUNCH */
+  .launch-card{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:32px;text-align:center;position:relative;overflow:hidden;margin-top:24px;}
+  .launch-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--mac),var(--brew),var(--manual),var(--win));}
+  .launch-card h3{font-size:20px;font-weight:700;margin-bottom:12px;}
+  .launch-cmd{font-family:'Fira Code',monospace;font-size:28px;font-weight:700;color:var(--green);margin:16px 0;}
+  .launch-sub{font-size:14px;color:var(--ts);}
+
+  .footer{text-align:center;margin-top:64px;padding-top:28px;border-top:1px solid var(--border);}
+  .footer p{font-family:'Space Mono',monospace;font-size:12px;color:var(--tm);letter-spacing:1px;}
+  .footer .fa{color:var(--mac);}
+
+  @media(max-width:700px){
+    .meth-head{flex-wrap:wrap;}.hero-os{flex-direction:column;align-items:center;}
+  }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-blob a"></div>
+<div class="bg-blob b"></div>
+<div class="bg-blob c"></div>
+
+<div class="page">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-badge">Installation · Performance Testing 101</div>
+    <h1>How to Install Apache JMeter</h1>
+    <p class="hero-sub">
+      A step-by-step guide to installing JMeter on <strong>macOS</strong> and <strong>Windows</strong> — covering prerequisites, Homebrew, manual installation, and environment setup.
+    </p>
+    <div class="hero-os">
+      <span class="hero-os-chip ho-mac">🍎 macOS</span>
+      <span class="hero-os-chip ho-win">🪟 Windows</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!--                  macOS                     -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="os-section">
+    <div class="os-head">
+      <span class="os-icon">🍎</span>
+      <h2 style="color:var(--mac);">macOS Installation</h2>
+      <span class="os-tag" style="background:var(--mac-b);border:1px solid var(--mac-d);color:var(--mac);">2 Methods</span>
+    </div>
+
+    <!-- PREREQ -->
+    <div class="prereq" style="--bar:var(--java);">
+      <div style="height:3px;background:var(--java);"></div>
+      <div class="prereq-head" style="color:var(--java);">☕ Pre-Requisite: Java (JDK 8+)</div>
+      <div class="prereq-body">
+        <div class="prereq-text">Before installing JMeter, ensure <strong>Java (JDK 8 or higher)</strong> is installed. Check your version:</div>
+        <div class="code-block"><span class="cmd">java -version</span></div>
+        <div class="prereq-text">If Java is not installed, use Homebrew:</div>
+        <div class="code-block"><span class="cmd">brew install openjdk</span></div>
+        <div class="prereq-text">Then add it to your PATH:</div>
+        <div class="code-block"><span class="cmd">echo 'export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"' >> ~/.zprofile</span><br><span class="cmd">source ~/.zprofile</span></div>
+      </div>
+    </div>
+
+    <!-- METHOD 1: HOMEBREW -->
+    <div class="method m-brew">
+      <div class="meth-bar"></div>
+      <div class="meth-head">
+        <span class="meth-badge">Recommended</span>
+        <h3>Method 1: Using Homebrew</h3>
+        <span class="meth-icon">🍺</span>
+      </div>
+      <div class="meth-body">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">Install JMeter</div>
+            <div class="code-block"><span class="cmd">brew install jmeter</span></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">Verify Installation</div>
+            <div class="code-block"><span class="cmd">jmeter --version</span></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">Set JMETER_HOME (Optional)</div>
+            <div class="step-desc">Find the install path, then add to your shell profile:</div>
+            <div class="code-block"><span class="cmd">brew --prefix jmeter</span><br><span class="comment"># → /opt/homebrew/Cellar/jmeter/5.6.3</span></div>
+            <div class="code-block"><span class="comment"># Add to ~/.zprofile or ~/.zshrc:</span><br><span class="cmd">export JMETER_HOME="/opt/homebrew/Cellar/jmeter/5.6.3/libexec"</span><br><span class="cmd">export PATH="$JMETER_HOME/bin:$PATH"</span></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-title">Apply Changes</div>
+            <div class="code-block"><span class="cmd">source ~/.zprofile</span></div>
+          </div>
+        </div>
+        <div class="tip-box tip-brew">
+          <span class="tip-icon">💡</span>
+          <div>Homebrew handles PATH automatically — <strong>JMETER_HOME</strong> is only needed if other tools or scripts depend on it.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- METHOD 2: MANUAL -->
+    <div class="method m-manual">
+      <div class="meth-bar"></div>
+      <div class="meth-head">
+        <span class="meth-badge">Alternative</span>
+        <h3>Method 2: Manual Installation</h3>
+        <span class="meth-icon">📦</span>
+      </div>
+      <div class="meth-body">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">Download JMeter</div>
+            <div class="step-desc">Go to <strong>jmeter.apache.org/download_jmeter.cgi</strong> → download <strong>apache-jmeter-5.6.3.zip</strong> from Binaries section.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">Extract & Move</div>
+            <div class="step-desc">Double-click the .zip to extract, then move to Applications:</div>
+            <div class="code-block"><span class="cmd">sudo mv ~/Downloads/apache-jmeter-5.6.3 /Applications/</span></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">Set JMETER_HOME & PATH</div>
+            <div class="step-desc">Add to <strong>~/.zprofile</strong> or <strong>~/.zshrc</strong>:</div>
+            <div class="code-block"><span class="cmd">export JMETER_HOME="/Applications/apache-jmeter-5.6.3"</span><br><span class="cmd">export PATH="$JMETER_HOME/bin:$PATH"</span></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-title">Apply Changes</div>
+            <div class="code-block"><span class="cmd">source ~/.zprofile</span></div>
+          </div>
+        </div>
+          <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <div class="step-title">Launch</div>
+            <div class="code-block"><span class="cmd">apache-jmeter-5.6.3/bin</span><br><span class="cmd">jmeter</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!--                 WINDOWS                    -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="os-section">
+    <div class="os-head">
+      <span class="os-icon">🪟</span>
+      <h2 style="color:var(--win);">Windows Installation</h2>
+      <span class="os-tag" style="background:var(--win-b);border:1px solid var(--win-d);color:var(--win);">4 Steps</span>
+    </div>
+
+    <!-- STEP 1: JAVA -->
+    <div class="method m-win">
+      <div class="meth-bar"></div>
+      <div class="meth-head">
+        <span class="meth-badge">Step 1</span>
+        <h3>Install Java (JDK 11+)</h3>
+        <span class="meth-icon">☕</span>
+      </div>
+      <div class="meth-body">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">Download JDK</div>
+            <div class="step-desc">Get JDK from <strong>Oracle</strong>, <strong>Adoptium</strong>, or <strong>Amazon Corretto</strong>. Recommended: <strong>JDK 17 (LTS)</strong> or <strong>JDK 21</strong>.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">Run Installer & Verify</div>
+            <div class="step-desc">Execute the .exe installer, accept defaults, then verify in Command Prompt:</div>
+            <div class="code-block"><span class="cmd">java -version</span><br><span class="comment"># → openjdk version "21.0.1"</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: JAVA_HOME -->
+    <div class="method m-win">
+      <div class="meth-bar"></div>
+      <div class="meth-head">
+        <span class="meth-badge">Step 2</span>
+        <h3>Set JAVA_HOME Environment Variable</h3>
+        <span class="meth-icon">⚙️</span>
+      </div>
+      <div class="meth-body">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">Find Java Path</div>
+            <div class="step-desc">Navigate to where Java was installed, e.g.:</div>
+            <div class="code-block"><span class="cmd">C:\Program Files\Java\jdk-21.0.1</span></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">Open Environment Variables</div>
+            <div class="step-desc">Search <strong>"Edit the system environment variables"</strong> → click <strong>"Environment Variables..."</strong></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">Create JAVA_HOME</div>
+            <table class="env-table">
+              <tr><td>Variable name</td><td>JAVA_HOME</td></tr>
+              <tr><td>Variable value</td><td>C:\Program Files\Java\jdk-21.0.1</td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-title">Update Path</div>
+            <div class="step-desc">Edit system <strong>Path</strong> variable → add new entry:</div>
+            <div class="code-block"><span class="cmd">%JAVA_HOME%\bin</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3: DOWNLOAD & JMETER_HOME -->
+    <div class="method m-win">
+      <div class="meth-bar"></div>
+      <div class="meth-head">
+        <span class="meth-badge">Step 3</span>
+        <h3>Download JMeter & Set JMETER_HOME</h3>
+        <span class="meth-icon">📦</span>
+      </div>
+      <div class="meth-body">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">Download & Extract</div>
+            <div class="step-desc">Download <strong>apache-jmeter-5.6.3.zip</strong> from the official site → extract → move to a convenient location:</div>
+            <div class="code-block"><span class="cmd">C:\Apache\apache-jmeter-5.6.3</span></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">Set JMETER_HOME</div>
+            <table class="env-table">
+              <tr><td>Variable name</td><td>JMETER_HOME</td></tr>
+              <tr><td>Variable value</td><td>C:\Apache\apache-jmeter-5.6.3</td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">Update Path</div>
+            <div class="step-desc">Edit system <strong>Path</strong> → add new entry:</div>
+            <div class="code-block"><span class="cmd">%JMETER_HOME%\bin</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4: LAUNCH -->
+    <div class="method m-win">
+      <div class="meth-bar"></div>
+      <div class="meth-head">
+        <span class="meth-badge">Step 4</span>
+        <h3>Launch JMeter</h3>
+        <span class="meth-icon">🚀</span>
+      </div>
+      <div class="meth-body">
+        <div class="step">
+          <div class="step-num">✓</div>
+          <div class="step-content">
+            <div class="step-title">Open a New Command Prompt</div>
+            <div class="step-desc">Type the command and press Enter:</div>
+            <div class="code-block"><span class="cmd">jmeter</span></div>
+            <div class="tip-box tip-green">
+              <span class="tip-icon">🎉</span>
+              <div>JMeter GUI will launch — you're ready to start building test plans!</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ FINAL LAUNCH ═══ -->
+  <div class="launch-card">
+    <h3>You're All Set!</h3>
+    <div class="launch-cmd">$ jmeter</div>
+    <div class="launch-sub">Works on both macOS and Windows after setup — launches the JMeter GUI from any terminal.</div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <p><span class="fa">APACHE JMETER INSTALLATION</span> &middot; Install &middot; Configure &middot; Test &middot; Optimize &middot; Author: Angshuman Basak</p>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Types of Performance Testing</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-dark: #0B0E17;
+    --bg-card: #131829;
+    --bg-card-alt: #1A1F35;
+    --accent-cyan: #00E5FF;
+    --accent-magenta: #FF2D78;
+    --accent-amber: #FFB800;
+    --accent-green: #00E676;
+    --accent-purple: #B388FF;
+    --accent-blue: #448AFF;
+    --text-primary: #E8EAF6;
+    --text-secondary: #9499B3;
+    --text-muted: #5C6180;
+    --border-subtle: rgba(255,255,255,0.06);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    font-family: 'Sora', sans-serif;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+  .infographic {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 60px 32px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* BG */
+  .bg-grid {
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none; z-index: 0;
+  }
+  .bg-blob { position: fixed; border-radius: 50%; filter: blur(130px); pointer-events: none; z-index: 0; }
+  .bg-blob.a { width: 520px; height: 520px; background: rgba(0,229,255,0.055); top: -80px; left: -120px; }
+  .bg-blob.b { width: 420px; height: 420px; background: rgba(255,45,120,0.04); bottom: 300px; right: -80px; }
+  .bg-blob.c { width: 350px; height: 350px; background: rgba(179,136,255,0.04); bottom: -50px; left: 30%; }
+
+  /* HERO */
+  .hero { text-align: center; margin-bottom: 56px; }
+  .hero-badge {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--accent-cyan);
+    border: 1px solid rgba(0,229,255,0.3);
+    padding: 6px 20px; border-radius: 40px;
+    background: rgba(0,229,255,0.05);
+    margin-bottom: 24px;
+  }
+  .hero h1 {
+    font-size: clamp(34px, 5vw, 58px);
+    font-weight: 800; letter-spacing: -1.5px; line-height: 1.1;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, #fff 0%, var(--accent-cyan) 55%, var(--accent-purple) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .hero-sub {
+    max-width: 700px; margin: 0 auto;
+    font-size: 16px; color: var(--text-secondary); line-height: 1.7;
+  }
+
+  /* ── TEST CARD ── */
+  .test-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 22px;
+    padding: 0;
+    margin-bottom: 32px;
+    overflow: hidden;
+    transition: transform 0.25s, box-shadow 0.25s;
+  }
+  .test-card:hover { transform: translateY(-3px); }
+
+  .tc-header {
+    display: flex; align-items: center; gap: 18px;
+    padding: 28px 32px 24px;
+    position: relative;
+  }
+  .tc-header::after {
+    content: ''; position: absolute; bottom: 0; left: 32px; right: 32px;
+    height: 1px; background: var(--border-subtle);
+  }
+  .tc-number {
+    font-family: 'Space Mono', monospace;
+    font-size: 14px; font-weight: 700;
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    color: var(--bg-dark);
+  }
+  .tc-header h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.3px; }
+  .tc-header .tc-emoji { font-size: 28px; margin-left: auto; }
+
+  .tc-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+  @media (max-width: 700px) {
+    .tc-body { grid-template-columns: 1fr; }
+  }
+
+  .tc-col {
+    padding: 28px 32px 32px;
+  }
+  .tc-col:first-child {
+    border-right: 1px solid var(--border-subtle);
+  }
+  @media (max-width: 700px) {
+    .tc-col:first-child { border-right: none; border-bottom: 1px solid var(--border-subtle); }
+  }
+
+  .tc-col-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .load-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 16px; font-weight: 700;
+    padding: 10px 20px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+  }
+
+  .load-desc {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+  .load-desc strong { color: var(--text-primary); font-weight: 600; }
+
+  .purpose-list { list-style: none; padding: 0; }
+  .purpose-list li {
+    font-size: 14px;
+    color: var(--text-secondary);
+    padding: 7px 0 7px 26px;
+    position: relative;
+    line-height: 1.6;
+  }
+  .purpose-list li::before {
+    content: '▸';
+    position: absolute; left: 4px; top: 7px;
+    font-size: 13px;
+  }
+  .purpose-list li strong { color: var(--text-primary); font-weight: 600; }
+
+  /* ── LOAD GRAPH MINI ── */
+  .load-visual {
+    margin-top: 16px;
+    height: 56px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border-subtle);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+    padding: 0 8px 6px;
+    gap: 2px;
+  }
+  .load-visual .bar {
+    flex: 1;
+    border-radius: 3px 3px 0 0;
+    min-width: 3px;
+    transition: height 0.3s;
+    opacity: 0.7;
+  }
+
+  /* ── Card Accent Colors ── */
+  .card-cyan .tc-number { background: var(--accent-cyan); }
+  .card-cyan .tc-col-label { color: var(--accent-cyan); }
+  .card-cyan .load-badge { background: rgba(0,229,255,0.08); border: 1px solid rgba(0,229,255,0.2); color: var(--accent-cyan); }
+  .card-cyan .purpose-list li::before { color: var(--accent-cyan); }
+  .card-cyan:hover { box-shadow: 0 0 40px rgba(0,229,255,0.1); }
+  .card-cyan .bar { background: var(--accent-cyan); }
+
+  .card-magenta .tc-number { background: var(--accent-magenta); }
+  .card-magenta .tc-col-label { color: var(--accent-magenta); }
+  .card-magenta .load-badge { background: rgba(255,45,120,0.08); border: 1px solid rgba(255,45,120,0.2); color: var(--accent-magenta); }
+  .card-magenta .purpose-list li::before { color: var(--accent-magenta); }
+  .card-magenta:hover { box-shadow: 0 0 40px rgba(255,45,120,0.1); }
+  .card-magenta .bar { background: var(--accent-magenta); }
+
+  .card-amber .tc-number { background: var(--accent-amber); }
+  .card-amber .tc-col-label { color: var(--accent-amber); }
+  .card-amber .load-badge { background: rgba(255,184,0,0.08); border: 1px solid rgba(255,184,0,0.2); color: var(--accent-amber); }
+  .card-amber .purpose-list li::before { color: var(--accent-amber); }
+  .card-amber:hover { box-shadow: 0 0 40px rgba(255,184,0,0.1); }
+  .card-amber .bar { background: var(--accent-amber); }
+
+  .card-green .tc-number { background: var(--accent-green); }
+  .card-green .tc-col-label { color: var(--accent-green); }
+  .card-green .load-badge { background: rgba(0,230,118,0.08); border: 1px solid rgba(0,230,118,0.2); color: var(--accent-green); }
+  .card-green .purpose-list li::before { color: var(--accent-green); }
+  .card-green:hover { box-shadow: 0 0 40px rgba(0,230,118,0.1); }
+  .card-green .bar { background: var(--accent-green); }
+
+  .card-purple .tc-number { background: var(--accent-purple); }
+  .card-purple .tc-col-label { color: var(--accent-purple); }
+  .card-purple .load-badge { background: rgba(179,136,255,0.08); border: 1px solid rgba(179,136,255,0.2); color: var(--accent-purple); }
+  .card-purple .purpose-list li::before { color: var(--accent-purple); }
+  .card-purple:hover { box-shadow: 0 0 40px rgba(179,136,255,0.1); }
+  .card-purple .bar { background: var(--accent-purple); }
+
+  /* ── SUMMARY TABLE ── */
+  .summary-header {
+    display: flex; align-items: center; gap: 16px;
+    margin: 64px 0 28px;
+  }
+  .summary-header .sh-icon {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px; font-weight: 700;
+    color: var(--bg-dark); background: var(--accent-cyan);
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .summary-header h2 { font-size: 24px; font-weight: 700; }
+
+  .summary-table-wrap {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  thead th {
+    background: var(--bg-card-alt);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--accent-cyan);
+    padding: 16px 20px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  tbody tr { background: var(--bg-card); }
+  tbody tr:nth-child(even) { background: var(--bg-card-alt); }
+  tbody td {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    line-height: 1.6;
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody td:first-child {
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+  }
+  .dot {
+    display: inline-block; width: 8px; height: 8px;
+    border-radius: 50%; margin-right: 8px;
+    vertical-align: middle;
+  }
+  .dot-cyan { background: var(--accent-cyan); }
+  .dot-magenta { background: var(--accent-magenta); }
+  .dot-amber { background: var(--accent-amber); }
+  .dot-green { background: var(--accent-green); }
+  .dot-purple { background: var(--accent-purple); }
+
+  @media (max-width: 700px) {
+    table { font-size: 12.5px; }
+    thead th, tbody td { padding: 12px 14px; }
+  }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center; margin-top: 72px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border-subtle);
+  }
+  .footer p {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px; color: var(--text-muted); letter-spacing: 1px;
+  }
+  .footer .fa { color: var(--accent-cyan); }
+</style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-blob a"></div>
+  <div class="bg-blob b"></div>
+  <div class="bg-blob c"></div>
+
+  <div class="infographic">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-badge">Types · Performance Testing 101</div>
+      <h1>Types of Performance Testing</h1>
+      <p class="hero-sub">
+        Each performance test type targets a <strong>specific load condition</strong> to uncover distinct system behaviors, from peak capacity validation to long-term endurance and sudden spike resilience.
+      </p>
+    </div>
+
+    <!-- ═══════════════════════ 1. LOAD TEST ═══════════════════════ -->
+    <div class="test-card card-cyan">
+      <div class="tc-header">
+        <div class="tc-number">01</div>
+        <h2>Load Test</h2>
+        <span class="tc-emoji">📈</span>
+      </div>
+      <div class="tc-body">
+        <div class="tc-col">
+          <div class="tc-col-label">Specific Load Condition</div>
+          <div class="load-badge">⚡ Peak Load</div>
+          <p class="load-desc">
+            The <strong>highest expected user load</strong> based on production data, or predicted load for new applications.
+          </p>
+          <div class="load-visual">
+            <div class="bar" style="height:20%"></div><div class="bar" style="height:30%"></div>
+            <div class="bar" style="height:40%"></div><div class="bar" style="height:50%"></div>
+            <div class="bar" style="height:60%"></div><div class="bar" style="height:72%"></div>
+            <div class="bar" style="height:80%"></div><div class="bar" style="height:88%"></div>
+            <div class="bar" style="height:94%"></div><div class="bar" style="height:100%"></div>
+            <div class="bar" style="height:100%"></div><div class="bar" style="height:100%"></div>
+            <div class="bar" style="height:100%"></div><div class="bar" style="height:100%"></div>
+            <div class="bar" style="height:98%"></div><div class="bar" style="height:95%"></div>
+            <div class="bar" style="height:88%"></div><div class="bar" style="height:70%"></div>
+            <div class="bar" style="height:50%"></div><div class="bar" style="height:30%"></div>
+          </div>
+        </div>
+        <div class="tc-col">
+          <div class="tc-col-label">Purpose</div>
+          <ul class="purpose-list">
+            <li>Verify app can <strong>handle peak load</strong></li>
+            <li>Observe <strong>response time behavior</strong> at peak</li>
+            <li>Ensure <strong>CPU / Memory / Disk</strong> stay within limits</li>
+            <li>Identify <strong>bottlenecks</strong> under real-world peak conditions</li>
+            <li>Validate performance after <strong>code releases</strong> (regression)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ 2. STRESS TEST ═══════════════════════ -->
+    <div class="test-card card-magenta">
+      <div class="tc-header">
+        <div class="tc-number">02</div>
+        <h2>Stress Test</h2>
+        <span class="tc-emoji">🔥</span>
+      </div>
+      <div class="tc-body">
+        <div class="tc-col">
+          <div class="tc-col-label">Specific Load Condition</div>
+          <div class="load-badge">🚀 Future Load (&gt; Peak)</div>
+          <p class="load-desc">
+            A user load <strong>higher than peak load</strong> — based on historical growth trends, or <strong>125%, 150%, 200%</strong> of peak if no historical data is available.
+          </p>
+          <div class="load-visual">
+            <div class="bar" style="height:25%"></div><div class="bar" style="height:35%"></div>
+            <div class="bar" style="height:45%"></div><div class="bar" style="height:55%"></div>
+            <div class="bar" style="height:65%"></div><div class="bar" style="height:75%"></div>
+            <div class="bar" style="height:82%"></div><div class="bar" style="height:88%"></div>
+            <div class="bar" style="height:92%"></div><div class="bar" style="height:95%"></div>
+            <div class="bar" style="height:97%"></div><div class="bar" style="height:100%"></div>
+            <div class="bar" style="height:100%"></div><div class="bar" style="height:100%"></div>
+            <div class="bar" style="height:100%"></div><div class="bar" style="height:100%"></div>
+            <div class="bar" style="height:100%"></div><div class="bar" style="height:100%"></div>
+            <div class="bar" style="height:100%"></div><div class="bar" style="height:100%"></div>
+          </div>
+        </div>
+        <div class="tc-col">
+          <div class="tc-col-label">Purpose</div>
+          <ul class="purpose-list">
+            <li>Verify app can handle <strong>future projected load</strong></li>
+            <li>Check <strong>response time</strong> above peak</li>
+            <li>Observe resource behavior under <strong>heavy strain</strong></li>
+            <li>Find <strong>bottlenecks and weak components</strong></li>
+            <li>Capture <strong>error rate &amp; failure patterns</strong> at higher load</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ 3. SOAK TEST ═══════════════════════ -->
+    <div class="test-card card-amber">
+      <div class="tc-header">
+        <div class="tc-number">03</div>
+        <h2>Soak Test <span style="font-size:15px;font-weight:400;color:var(--text-muted)">(Endurance)</span></h2>
+        <span class="tc-emoji">⏳</span>
+      </div>
+      <div class="tc-body">
+        <div class="tc-col">
+          <div class="tc-col-label">Specific Load Condition</div>
+          <div class="load-badge">🕐 Average Load · Long Duration</div>
+          <p class="load-desc">
+            Calculated from <strong>historical usage patterns</strong>, or <strong>50%, 60%, 75%</strong> of peak load if no data is available. Runs for <strong>many hours</strong>.
+          </p>
+          <div class="load-visual">
+            <div class="bar" style="height:55%"></div><div class="bar" style="height:58%"></div>
+            <div class="bar" style="height:56%"></div><div class="bar" style="height:60%"></div>
+            <div class="bar" style="height:57%"></div><div class="bar" style="height:59%"></div>
+            <div class="bar" style="height:55%"></div><div class="bar" style="height:58%"></div>
+            <div class="bar" style="height:60%"></div><div class="bar" style="height:57%"></div>
+            <div class="bar" style="height:56%"></div><div class="bar" style="height:59%"></div>
+            <div class="bar" style="height:58%"></div><div class="bar" style="height:55%"></div>
+            <div class="bar" style="height:60%"></div><div class="bar" style="height:57%"></div>
+            <div class="bar" style="height:56%"></div><div class="bar" style="height:58%"></div>
+            <div class="bar" style="height:59%"></div><div class="bar" style="height:57%"></div>
+          </div>
+        </div>
+        <div class="tc-col">
+          <div class="tc-col-label">Purpose</div>
+          <ul class="purpose-list">
+            <li>Verify <strong>long-term stability</strong> &amp; sustainability</li>
+            <li>Detect <strong>memory leaks</strong></li>
+            <li>Observe <strong>Garbage Collector</strong> behavior</li>
+            <li>Identify <strong>performance degradation</strong> over time</li>
+            <li>Detect errors during <strong>prolonged execution</strong></li>
+            <li>Ensure resources stay within limits for <strong>many hours</strong></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ 4. SPIKE TEST ═══════════════════════ -->
+    <div class="test-card card-green">
+      <div class="tc-header">
+        <div class="tc-number">04</div>
+        <h2>Spike Test</h2>
+        <span class="tc-emoji">⚡</span>
+      </div>
+      <div class="tc-body">
+        <div class="tc-col">
+          <div class="tc-col-label">Specific Load Condition</div>
+          <div class="load-badge">💥 Sudden, Unexpected Spike</div>
+          <p class="load-desc">
+            Load jumps <strong>instantly</strong> from base load to spike load. Base can be average or peak load. Spike types: <strong>Constant</strong>, <strong>Step-up</strong>, or <strong>Random</strong>.
+          </p>
+          <div class="load-visual">
+            <div class="bar" style="height:30%"></div><div class="bar" style="height:28%"></div>
+            <div class="bar" style="height:32%"></div><div class="bar" style="height:30%"></div>
+            <div class="bar" style="height:29%"></div><div class="bar" style="height:31%"></div>
+            <div class="bar" style="height:30%"></div><div class="bar" style="height:100%"></div>
+            <div class="bar" style="height:100%"></div><div class="bar" style="height:100%"></div>
+            <div class="bar" style="height:100%"></div><div class="bar" style="height:95%"></div>
+            <div class="bar" style="height:60%"></div><div class="bar" style="height:35%"></div>
+            <div class="bar" style="height:30%"></div><div class="bar" style="height:29%"></div>
+            <div class="bar" style="height:31%"></div><div class="bar" style="height:30%"></div>
+            <div class="bar" style="height:28%"></div><div class="bar" style="height:30%"></div>
+          </div>
+        </div>
+        <div class="tc-col">
+          <div class="tc-col-label">Purpose</div>
+          <ul class="purpose-list">
+            <li>Evaluate handling of <strong>sudden traffic surge</strong></li>
+            <li>Measure <strong>response time variation</strong> during spike</li>
+            <li>Determine <strong>failure rate</strong> &amp; error types (500, 504)</li>
+            <li>Observe <strong>recovery time</strong> after spike</li>
+            <li>Identify bottlenecks under <strong>sudden load</strong></li>
+            <li>Ensure resources don't exceed limits during spike</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ 5. BREAK-POINT TEST ═══════════════════════ -->
+    <div class="test-card card-purple">
+      <div class="tc-header">
+        <div class="tc-number">05</div>
+        <h2>Break-Point Test <span style="font-size:15px;font-weight:400;color:var(--text-muted)">(Fatigue)</span></h2>
+        <span class="tc-emoji">💀</span>
+      </div>
+      <div class="tc-body">
+        <div class="tc-col">
+          <div class="tc-col-label">Specific Load Condition</div>
+          <div class="load-badge">📈 Continuously Increasing (No Limit)</div>
+          <p class="load-desc">
+            User load <strong>keeps increasing until the system breaks</strong>. There is no upper limit, no steady-state — only <strong>continuous ramp-up</strong>.
+          </p>
+          <div class="load-visual">
+            <div class="bar" style="height:8%"></div><div class="bar" style="height:13%"></div>
+            <div class="bar" style="height:18%"></div><div class="bar" style="height:24%"></div>
+            <div class="bar" style="height:30%"></div><div class="bar" style="height:36%"></div>
+            <div class="bar" style="height:42%"></div><div class="bar" style="height:48%"></div>
+            <div class="bar" style="height:54%"></div><div class="bar" style="height:60%"></div>
+            <div class="bar" style="height:66%"></div><div class="bar" style="height:72%"></div>
+            <div class="bar" style="height:78%"></div><div class="bar" style="height:84%"></div>
+            <div class="bar" style="height:88%"></div><div class="bar" style="height:92%"></div>
+            <div class="bar" style="height:95%"></div><div class="bar" style="height:98%"></div>
+            <div class="bar" style="height:100%"></div><div class="bar" style="height:100%"></div>
+          </div>
+        </div>
+        <div class="tc-col">
+          <div class="tc-col-label">Purpose</div>
+          <ul class="purpose-list">
+            <li>Find <strong>maximum load-bearing capacity</strong></li>
+            <li>Identify the <strong>exact break point</strong></li>
+            <li>Analyze response time at <strong>progressively higher loads</strong></li>
+            <li>Monitor when resources <strong>hit saturation</strong></li>
+            <li>Determine which component <strong>fails first &amp; why</strong></li>
+            <li>Identify further <strong>tuning opportunities</strong></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ SUMMARY TABLE ═══════════════════════ -->
+    <div class="summary-header">
+      <div class="sh-icon">∑</div>
+      <h2>Consolidated Summary</h2>
+    </div>
+    <div class="summary-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Test Type</th>
+            <th>Specific Load Condition</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="dot dot-cyan"></span>Load Test</td>
+            <td>Peak Load</td>
+            <td>Check performance at peak load, validate resource usage, detect bottlenecks</td>
+          </tr>
+          <tr>
+            <td><span class="dot dot-magenta"></span>Stress Test</td>
+            <td>Future Load (&gt; Peak)</td>
+            <td>Check behavior under heavy load, capture failures, validate future scalability</td>
+          </tr>
+          <tr>
+            <td><span class="dot dot-amber"></span>Soak Test</td>
+            <td>Average Load (Long Duration)</td>
+            <td>Detect memory leaks, GC issues, long-term stability, resource trends</td>
+          </tr>
+          <tr>
+            <td><span class="dot dot-green"></span>Spike Test</td>
+            <td>Sudden Spike Load</td>
+            <td>Check behavior under abrupt traffic jump, response deviation, failures, recovery</td>
+          </tr>
+          <tr>
+            <td><span class="dot dot-purple"></span>Break-Point Test</td>
+            <td>Continuously Increasing (No Limit)</td>
+            <td>Identify max capacity, break point, first failing component, saturation point</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+      <p><span class="fa">PERFORMANCE TESTING TYPES</span> &middot; Know Your Limits &middot; Before Your Users Do &middot; Author: Angshuman Basak</p>
+    </div>
+
+  </div>
+</body>
+</html>

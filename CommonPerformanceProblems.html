@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Common Performance Problems</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Space+Mono:wght@400;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#090C14;--bg-card:#111728;--bg-alt:#161D30;--bg-code:#0C0F1A;
+    --c1:#FF5252;--c2:#FF7043;--c3:#FFA726;--c4:#FFCA28;--c5:#66BB6A;--c6:#42A5F5;--c7:#AB47BC;
+    --c1b:rgba(255,82,82,.06);--c1d:rgba(255,82,82,.18);
+    --c2b:rgba(255,112,67,.06);--c2d:rgba(255,112,67,.18);
+    --c3b:rgba(255,167,38,.06);--c3d:rgba(255,167,38,.18);
+    --c4b:rgba(255,202,40,.05);--c4d:rgba(255,202,40,.16);
+    --c5b:rgba(102,187,106,.06);--c5d:rgba(102,187,106,.18);
+    --c6b:rgba(66,165,245,.06);--c6d:rgba(66,165,245,.18);
+    --c7b:rgba(171,71,188,.06);--c7d:rgba(171,71,188,.18);
+    --tp:#E8EAF6;--ts:#8E93AD;--tm:#555A72;--border:rgba(255,255,255,.055);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--tp);font-family:'Sora',sans-serif;line-height:1.6;overflow-x:hidden;}
+  .page{max-width:1100px;margin:0 auto;padding:60px 32px 80px;position:relative;z-index:1;}
+  .bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.013) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.013) 1px,transparent 1px);background-size:56px 56px;pointer-events:none;z-index:0;}
+  .bg-blob{position:fixed;border-radius:50%;filter:blur(140px);pointer-events:none;z-index:0;}
+  .bg-blob.a{width:480px;height:480px;background:rgba(255,82,82,.04);top:-80px;right:-80px;}
+  .bg-blob.b{width:380px;height:380px;background:rgba(66,165,245,.035);bottom:350px;left:-80px;}
+  .bg-blob.c{width:320px;height:320px;background:rgba(171,71,188,.03);bottom:-30px;right:25%;}
+
+  /* HERO */
+  .hero{text-align:center;margin-bottom:56px;}
+  .hero-badge{display:inline-block;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--c1);border:1px solid rgba(255,82,82,.3);padding:6px 20px;border-radius:40px;background:rgba(255,82,82,.05);margin-bottom:24px;}
+  .hero h1{font-size:clamp(30px,5vw,54px);font-weight:800;letter-spacing:-1.5px;line-height:1.1;margin-bottom:14px;background:linear-gradient(135deg,#fff 0%,var(--c1) 40%,var(--c3) 65%,var(--c6) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .hero-sub{font-size:15.5px;color:var(--ts);max-width:720px;margin:0 auto;line-height:1.75;}
+  .hero-sub strong{color:var(--tp);}
+  .hero-count{display:inline-flex;align-items:center;gap:6px;margin-top:18px;font-family:'Space Mono',monospace;font-size:12px;color:var(--tm);}
+  .hero-count .hc-dot{width:10px;height:10px;border-radius:50%;}
+
+  /* ═══ PROBLEM CARD ═══ */
+  .prob{background:var(--bg-card);border:1px solid var(--border);border-radius:22px;overflow:hidden;margin-bottom:24px;transition:transform .25s,box-shadow .25s;}
+  .prob:hover{transform:translateY(-3px);}
+
+  .prob-top{display:flex;align-items:stretch;min-height:0;}
+
+  /* Left accent strip */
+  .prob-accent{width:6px;flex-shrink:0;}
+
+  /* Header row */
+  .prob-header{display:flex;align-items:center;gap:14px;padding:24px 28px 0 22px;flex:1;}
+  .prob-num{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--bg);}
+  .prob-header h2{font-size:20px;font-weight:700;letter-spacing:-.3px;flex:1;}
+  .prob-header .prob-icon{font-size:26px;}
+
+  .prob-body{padding:18px 28px 28px 28px;}
+
+  /* Meaning */
+  .prob-meaning{font-size:15px;color:var(--ts);line-height:1.7;margin-bottom:18px;padding:14px 18px;border-radius:12px;border-left:3px solid;}
+  .prob-meaning strong{color:var(--tp);font-weight:600;}
+
+  /* Why + Example side by side */
+  .prob-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:700px){.prob-cols{grid-template-columns:1fr;}}
+
+  .prob-why{border-radius:14px;padding:18px 20px;}
+  .prob-why-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1.8px;text-transform:uppercase;margin-bottom:10px;font-weight:700;}
+  .prob-why-tags{display:flex;flex-wrap:wrap;gap:7px;}
+  .pw-tag{font-size:12px;font-weight:600;padding:6px 14px;border-radius:30px;}
+
+  .prob-ex{border-radius:14px;padding:18px 20px;position:relative;}
+  .prob-ex-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1.8px;text-transform:uppercase;margin-bottom:10px;font-weight:700;}
+
+  .prob-ex-metric{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+  .prob-ex-metric:last-child{margin-bottom:0;}
+  .pem-badge{font-family:'Fira Code',monospace;font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px;flex-shrink:0;}
+  .pem-text{font-size:13px;color:var(--ts);}
+  .pem-text strong{color:var(--tp);}
+  .pem-arrow{font-size:16px;flex-shrink:0;}
+
+  .prob-impact{font-size:13px;color:var(--ts);margin-top:12px;padding:10px 14px;border-radius:8px;background:rgba(255,255,255,.015);border:1px solid var(--border);line-height:1.6;}
+  .prob-impact strong{color:var(--tp);}
+
+  /* ── Color per problem ── */
+  .p1 .prob-accent{background:var(--c1)}.p1 .prob-num{background:var(--c1)}.p1 .prob-header h2{color:var(--c1)}.p1 .prob-meaning{border-color:var(--c1);background:var(--c1b)}.p1 .prob-why{background:var(--c1b);border:1px solid var(--c1d)}.p1 .prob-why-label{color:var(--c1)}.p1 .pw-tag{background:rgba(255,82,82,.08);border:1px solid var(--c1d);color:var(--c1)}.p1 .prob-ex{background:var(--c1b);border:1px solid var(--c1d)}.p1 .prob-ex-label{color:var(--c1)}.p1 .pem-badge{background:rgba(255,82,82,.12);color:var(--c1)}.p1:hover{box-shadow:0 0 40px rgba(255,82,82,.06);}
+
+  .p2 .prob-accent{background:var(--c2)}.p2 .prob-num{background:var(--c2)}.p2 .prob-header h2{color:var(--c2)}.p2 .prob-meaning{border-color:var(--c2);background:var(--c2b)}.p2 .prob-why{background:var(--c2b);border:1px solid var(--c2d)}.p2 .prob-why-label{color:var(--c2)}.p2 .pw-tag{background:rgba(255,112,67,.08);border:1px solid var(--c2d);color:var(--c2)}.p2 .prob-ex{background:var(--c2b);border:1px solid var(--c2d)}.p2 .prob-ex-label{color:var(--c2)}.p2 .pem-badge{background:rgba(255,112,67,.12);color:var(--c2)}.p2:hover{box-shadow:0 0 40px rgba(255,112,67,.06);}
+
+  .p3 .prob-accent{background:var(--c3)}.p3 .prob-num{background:var(--c3)}.p3 .prob-header h2{color:var(--c3)}.p3 .prob-meaning{border-color:var(--c3);background:var(--c3b)}.p3 .prob-why{background:var(--c3b);border:1px solid var(--c3d)}.p3 .prob-why-label{color:var(--c3)}.p3 .pw-tag{background:rgba(255,167,38,.08);border:1px solid var(--c3d);color:var(--c3)}.p3 .prob-ex{background:var(--c3b);border:1px solid var(--c3d)}.p3 .prob-ex-label{color:var(--c3)}.p3 .pem-badge{background:rgba(255,167,38,.12);color:var(--c3)}.p3:hover{box-shadow:0 0 40px rgba(255,167,38,.06);}
+
+  .p4 .prob-accent{background:var(--c4)}.p4 .prob-num{background:var(--c4);color:#1a1a1a}.p4 .prob-header h2{color:var(--c4)}.p4 .prob-meaning{border-color:var(--c4);background:var(--c4b)}.p4 .prob-why{background:var(--c4b);border:1px solid var(--c4d)}.p4 .prob-why-label{color:var(--c4)}.p4 .pw-tag{background:rgba(255,202,40,.06);border:1px solid var(--c4d);color:var(--c4)}.p4 .prob-ex{background:var(--c4b);border:1px solid var(--c4d)}.p4 .prob-ex-label{color:var(--c4)}.p4 .pem-badge{background:rgba(255,202,40,.1);color:var(--c4)}.p4:hover{box-shadow:0 0 40px rgba(255,202,40,.05);}
+
+  .p5 .prob-accent{background:var(--c5)}.p5 .prob-num{background:var(--c5)}.p5 .prob-header h2{color:var(--c5)}.p5 .prob-meaning{border-color:var(--c5);background:var(--c5b)}.p5 .prob-why{background:var(--c5b);border:1px solid var(--c5d)}.p5 .prob-why-label{color:var(--c5)}.p5 .pw-tag{background:rgba(102,187,106,.08);border:1px solid var(--c5d);color:var(--c5)}.p5 .prob-ex{background:var(--c5b);border:1px solid var(--c5d)}.p5 .prob-ex-label{color:var(--c5)}.p5 .pem-badge{background:rgba(102,187,106,.12);color:var(--c5)}.p5:hover{box-shadow:0 0 40px rgba(102,187,106,.06);}
+
+  .p6 .prob-accent{background:var(--c6)}.p6 .prob-num{background:var(--c6)}.p6 .prob-header h2{color:var(--c6)}.p6 .prob-meaning{border-color:var(--c6);background:var(--c6b)}.p6 .prob-why{background:var(--c6b);border:1px solid var(--c6d)}.p6 .prob-why-label{color:var(--c6)}.p6 .pw-tag{background:rgba(66,165,245,.08);border:1px solid var(--c6d);color:var(--c6)}.p6 .prob-ex{background:var(--c6b);border:1px solid var(--c6d)}.p6 .prob-ex-label{color:var(--c6)}.p6 .pem-badge{background:rgba(66,165,245,.12);color:var(--c6)}.p6:hover{box-shadow:0 0 40px rgba(66,165,245,.06);}
+
+  .p7 .prob-accent{background:var(--c7)}.p7 .prob-num{background:var(--c7)}.p7 .prob-header h2{color:var(--c7)}.p7 .prob-meaning{border-color:var(--c7);background:var(--c7b)}.p7 .prob-why{background:var(--c7b);border:1px solid var(--c7d)}.p7 .prob-why-label{color:var(--c7)}.p7 .pw-tag{background:rgba(171,71,188,.08);border:1px solid var(--c7d);color:var(--c7)}.p7 .prob-ex{background:var(--c7b);border:1px solid var(--c7d)}.p7 .prob-ex-label{color:var(--c7)}.p7 .pem-badge{background:rgba(171,71,188,.12);color:var(--c7)}.p7:hover{box-shadow:0 0 40px rgba(171,71,188,.06);}
+
+  /* ═══ SUMMARY TABLE ═══ */
+  .sum-head{display:flex;align-items:center;gap:14px;margin:52px 0 22px;}
+  .sum-head .sh-icon{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--bg);background:var(--c6);width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;}
+  .sum-head h2{font-size:24px;font-weight:700;}
+  .sum-wrap{border-radius:16px;overflow:hidden;border:1px solid var(--border);}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  thead th{background:var(--bg-alt);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--c6);padding:14px 16px;text-align:left;border-bottom:1px solid var(--border);}
+  tbody tr{background:var(--bg-card);}tbody tr:nth-child(even){background:var(--bg-alt);}
+  tbody td{padding:12px 16px;border-bottom:1px solid var(--border);color:var(--ts);line-height:1.55;vertical-align:top;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody td:first-child{font-weight:700;color:var(--tp);white-space:nowrap;}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle;}
+  .d1{background:var(--c1)}.d2{background:var(--c2)}.d3{background:var(--c3)}.d4{background:var(--c4)}.d5{background:var(--c5)}.d6{background:var(--c6)}.d7{background:var(--c7)}
+
+  @media(max-width:700px){
+    .prob-header{padding:20px 20px 0 16px;}.prob-body{padding:16px 20px 24px 20px;}
+    .prob-num{width:36px;height:36px;font-size:11px;border-radius:9px;}
+    table{font-size:11.5px;}thead th,tbody td{padding:10px 12px;}
+  }
+
+  .footer{text-align:center;margin-top:64px;padding-top:28px;border-top:1px solid var(--border);}
+  .footer p{font-family:'Space Mono',monospace;font-size:12px;color:var(--tm);letter-spacing:1px;}
+  .footer .fa{color:var(--c1);}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-blob a"></div>
+<div class="bg-blob b"></div>
+<div class="bg-blob c"></div>
+
+<div class="page">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-badge">Problems · Performance Testing 101</div>
+    <h1>Common Performance Problems</h1>
+    <p class="hero-sub">
+      The <strong>7 most frequent performance issues</strong> encountered during testing and in production — what they mean, why they happen, and how they manifest.
+    </p>
+    <div class="hero-count">
+      <span class="hc-dot" style="background:var(--c1)"></span>
+      <span class="hc-dot" style="background:var(--c2)"></span>
+      <span class="hc-dot" style="background:var(--c3)"></span>
+      <span class="hc-dot" style="background:var(--c4)"></span>
+      <span class="hc-dot" style="background:var(--c5)"></span>
+      <span class="hc-dot" style="background:var(--c6)"></span>
+      <span class="hc-dot" style="background:var(--c7)"></span>
+      &nbsp; 7 Problems Every Tester Must Know
+    </div>
+  </div>
+
+  <!-- ═══ 1. REDUCED THROUGHPUT ═══ -->
+  <div class="prob p1">
+    <div class="prob-header">
+      <div class="prob-num">01</div>
+      <h2>Reduced Throughput</h2>
+      <span class="prob-icon">📉</span>
+    </div>
+    <div class="prob-body">
+      <div class="prob-meaning" style="border-color:var(--c1);background:var(--c1b);">
+        The system is processing <strong>fewer requests/transactions per second</strong> than expected. Users experience delays as the system cannot handle incoming traffic fast enough.
+      </div>
+      <div class="prob-cols">
+        <div class="prob-why">
+          <div class="prob-why-label">Why It Happens</div>
+          <div class="prob-why-tags">
+            <span class="pw-tag">Slow Backend Calls</span>
+            <span class="pw-tag">Database Slowness</span>
+            <span class="pw-tag">Insufficient CPU</span>
+            <span class="pw-tag">Poorly Written Code</span>
+            <span class="pw-tag">Network Bottlenecks</span>
+          </div>
+        </div>
+        <div class="prob-ex">
+          <div class="prob-ex-label">Example</div>
+          <div class="prob-ex-metric">
+            <span class="pem-badge">EXPECTED</span>
+            <span class="pem-text"><strong>100 req/sec</strong></span>
+            <span class="pem-arrow">→</span>
+            <span class="pem-badge" style="background:rgba(255,82,82,.2);">ACTUAL</span>
+            <span class="pem-text"><strong>40 req/sec</strong></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 2. POOR RESPONSE TIME ═══ -->
+  <div class="prob p2">
+    <div class="prob-header">
+      <div class="prob-num">02</div>
+      <h2>Poor Response Time</h2>
+      <span class="prob-icon">🐌</span>
+    </div>
+    <div class="prob-body">
+      <div class="prob-meaning" style="border-color:var(--c2);background:var(--c2b);">
+        Each request takes <strong>too long to return a response</strong>. The delay is felt directly by end users as sluggish interactions.
+      </div>
+      <div class="prob-cols">
+        <div class="prob-why">
+          <div class="prob-why-label">Why It Happens</div>
+          <div class="prob-why-tags">
+            <span class="pw-tag">Heavy Server Processing</span>
+            <span class="pw-tag">Slow DB Queries</span>
+            <span class="pw-tag">High Network Latency</span>
+            <span class="pw-tag">Thread Pool Saturation</span>
+          </div>
+        </div>
+        <div class="prob-ex">
+          <div class="prob-ex-label">Example</div>
+          <div class="prob-ex-metric">
+            <span class="pem-badge">SLA</span>
+            <span class="pem-text">Login API: <strong>200 ms</strong></span>
+            <span class="pem-arrow">→</span>
+            <span class="pem-badge" style="background:rgba(255,112,67,.2);">ACTUAL</span>
+            <span class="pem-text"><strong>2,000 ms</strong></span>
+          </div>
+          <div class="prob-impact"><strong>10× slower</strong> than expected — users abandon the page.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 3. LACK OF SCALABILITY ═══ -->
+  <div class="prob p3">
+    <div class="prob-header">
+      <div class="prob-num">03</div>
+      <h2>Lack of Scalability</h2>
+      <span class="prob-icon">📊</span>
+    </div>
+    <div class="prob-body">
+      <div class="prob-meaning" style="border-color:var(--c3);background:var(--c3b);">
+        Performance <strong>does not increase</strong> when more resources (CPU / RAM / instances) are added. Throwing hardware at the problem doesn't fix it.
+      </div>
+      <div class="prob-cols">
+        <div class="prob-why">
+          <div class="prob-why-label">Why It Happens</div>
+          <div class="prob-why-tags">
+            <span class="pw-tag">Architecture Limitations</span>
+            <span class="pw-tag">Single-Threaded Processes</span>
+            <span class="pw-tag">DB Bottlenecks</span>
+            <span class="pw-tag">Global Locks</span>
+          </div>
+        </div>
+        <div class="prob-ex">
+          <div class="prob-ex-label">Example</div>
+          <div class="prob-ex-metric">
+            <span class="pem-badge">ACTION</span>
+            <span class="pem-text">Servers: <strong>2 → 4</strong> instances</span>
+          </div>
+          <div class="prob-ex-metric">
+            <span class="pem-badge" style="background:rgba(255,167,38,.2);">RESULT</span>
+            <span class="pem-text">Throughput <strong>barely increases</strong></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 4. SERVER USER LIMIT ═══ -->
+  <div class="prob p4">
+    <div class="prob-header">
+      <div class="prob-num">04</div>
+      <h2>Server Can't Handle X Users</h2>
+      <span class="prob-icon">💥</span>
+    </div>
+    <div class="prob-body">
+      <div class="prob-meaning" style="border-color:var(--c4);background:var(--c4b);">
+        The application <strong>crashes, hangs, or becomes slow</strong> when user count crosses a certain limit.
+      </div>
+      <div class="prob-cols">
+        <div class="prob-why">
+          <div class="prob-why-label">Why It Happens</div>
+          <div class="prob-why-tags">
+            <span class="pw-tag">CPU Spikes to 100%</span>
+            <span class="pw-tag">Memory Exhaustion</span>
+            <span class="pw-tag">Thread Pool Full</span>
+            <span class="pw-tag">DB Pool Maxed Out</span>
+          </div>
+        </div>
+        <div class="prob-ex">
+          <div class="prob-ex-label">Example</div>
+          <div class="prob-ex-metric">
+            <span class="pem-badge">STABLE</span>
+            <span class="pem-text">Up to <strong>500 users</strong> ✓</span>
+          </div>
+          <div class="prob-ex-metric">
+            <span class="pem-badge" style="background:rgba(255,202,40,.18);">FAILS</span>
+            <span class="pem-text">At <strong>600+ users</strong> — unstable</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 5. HEAP PROBLEM ═══ -->
+  <div class="prob p5">
+    <div class="prob-header">
+      <div class="prob-num">05</div>
+      <h2>Heap Problem</h2>
+      <span class="prob-icon">🧠</span>
+    </div>
+    <div class="prob-body">
+      <div class="prob-meaning" style="border-color:var(--c5);background:var(--c5b);">
+        Java heap memory is not managed well → leads to <strong>OutOfMemoryError</strong>, long GC pauses, or memory leaks. Memory keeps increasing and never comes down.
+      </div>
+      <div class="prob-cols">
+        <div class="prob-why">
+          <div class="prob-why-label">Symptoms</div>
+          <div class="prob-why-tags">
+            <span class="pw-tag">Memory Never Reclaimed</span>
+            <span class="pw-tag">Frequent Full GC</span>
+            <span class="pw-tag">GC Pause Times ↑</span>
+            <span class="pw-tag">OutOfMemoryError</span>
+          </div>
+        </div>
+        <div class="prob-ex">
+          <div class="prob-ex-label">Example</div>
+          <div class="prob-ex-metric">
+            <span class="pem-badge">UNDER LOAD</span>
+            <span class="pem-text">Heap usage → <strong>100%</strong></span>
+          </div>
+          <div class="prob-impact"><strong>Very slow responses</strong> → eventual application crash.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 6. THREAD POOL ISSUE ═══ -->
+  <div class="prob p6">
+    <div class="prob-header">
+      <div class="prob-num">06</div>
+      <h2>Thread Pool Issue</h2>
+      <span class="prob-icon">🧵</span>
+    </div>
+    <div class="prob-body">
+      <div class="prob-meaning" style="border-color:var(--c6);background:var(--c6b);">
+        All available threads are occupied → new requests <strong>wait in queue or get rejected</strong>. The server is alive but unable to process more work.
+      </div>
+      <div class="prob-cols">
+        <div class="prob-why">
+          <div class="prob-why-label">Why It Happens</div>
+          <div class="prob-why-tags">
+            <span class="pw-tag">Slow Backend Calls</span>
+            <span class="pw-tag">Blocking I/O</span>
+            <span class="pw-tag">Small Thread Pool Size</span>
+          </div>
+        </div>
+        <div class="prob-ex">
+          <div class="prob-ex-label">Example</div>
+          <div class="prob-ex-metric">
+            <span class="pem-badge">POOL</span>
+            <span class="pem-text"><strong>50</strong> threads</span>
+            <span class="pem-arrow">←</span>
+            <span class="pem-badge" style="background:rgba(66,165,245,.2);">INCOMING</span>
+            <span class="pem-text"><strong>200</strong> requests</span>
+          </div>
+          <div class="prob-impact"><strong>150 requests wait</strong> → high response time → 503 Service Unavailable errors.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 7. LONG DB QUERIES ═══ -->
+  <div class="prob p7">
+    <div class="prob-header">
+      <div class="prob-num">07</div>
+      <h2>Long Running DB Queries</h2>
+      <span class="prob-icon">🗄️</span>
+    </div>
+    <div class="prob-body">
+      <div class="prob-meaning" style="border-color:var(--c7);background:var(--c7b);">
+        Queries take too much time due to <strong>poor SQL design or missing indexes</strong>. This bottleneck cascades and slows down the entire application.
+      </div>
+      <div class="prob-cols">
+        <div class="prob-why">
+          <div class="prob-why-label">Why It Happens</div>
+          <div class="prob-why-tags">
+            <span class="pw-tag">Missing Indexes</span>
+            <span class="pw-tag">Large Data Scans</span>
+            <span class="pw-tag">Complex Joins</span>
+            <span class="pw-tag">Query Locks</span>
+            <span class="pw-tag">High DB CPU</span>
+          </div>
+        </div>
+        <div class="prob-ex">
+          <div class="prob-ex-label">Example</div>
+          <div class="prob-ex-metric">
+            <span class="pem-badge">NORMAL</span>
+            <span class="pem-text">"Get User Orders": <strong>50 ms</strong></span>
+          </div>
+          <div class="prob-ex-metric">
+            <span class="pem-badge" style="background:rgba(171,71,188,.2);">UNDER LOAD</span>
+            <span class="pem-text"><strong>3,000 ms</strong> (table scan + lock contention)</span>
+          </div>
+          <div class="prob-impact"><strong>60× slower</strong> → entire application bottlenecked.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SUMMARY TABLE ═══ -->
+  <div class="sum-head">
+    <div class="sh-icon">∑</div>
+    <h2>Quick Reference Summary</h2>
+  </div>
+  <div class="sum-wrap">
+    <table>
+      <thead><tr><th>Problem</th><th>Meaning</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td><span class="dot d1"></span>Reduced Throughput</td><td>System handles fewer req/sec</td><td>Expected 100 TPS → actual 40 TPS</td></tr>
+        <tr><td><span class="dot d2"></span>Poor Response Time</td><td>Requests take longer to complete</td><td>Login: 2 sec instead of 200 ms</td></tr>
+        <tr><td><span class="dot d3"></span>Lack of Scalability</td><td>More resources ≠ better performance</td><td>+= servers but same TPS</td></tr>
+        <tr><td><span class="dot d4"></span>Server User Limit</td><td>Crashes/slow at certain user count</td><td>Stable till 500, fails at 600</td></tr>
+        <tr><td><span class="dot d5"></span>Heap Problem</td><td>Memory leak / GC issues</td><td>Heap 100%, app slows or crashes</td></tr>
+        <tr><td><span class="dot d6"></span>Thread Pool Issue</td><td>No free threads → requests wait</td><td>Pool: 50; Incoming: 200 requests</td></tr>
+        <tr><td><span class="dot d7"></span>Long DB Queries</td><td>Slow SQL → delays entire app</td><td>Query: 3 sec instead of 50 ms</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <p><span class="fa">PERFORMANCE TESTING PROBLEMS</span> &middot; Detect Early &middot; Diagnose Fast &middot; Fix Right &middot; Author: Angshuman Basak</p>
+  </div>
+
+</div>
+</body>
+</html>

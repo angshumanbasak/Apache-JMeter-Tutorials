@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workload Modelling & Little's Law</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Space+Mono:wght@400;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-dark: #08090F;
+    --bg-card: #111524;
+    --bg-card-alt: #171C32;
+    --bg-code: #0D1020;
+    --accent-teal: #00BFA5;
+    --accent-coral: #FF6B6B;
+    --accent-sky: #40C4FF;
+    --accent-gold: #FFD54F;
+    --accent-lime: #B2FF59;
+    --accent-violet: #CE93D8;
+    --accent-peach: #FFAB91;
+    --text-primary: #E8EAF6;
+    --text-secondary: #8E93AD;
+    --text-muted: #555A72;
+    --border-subtle: rgba(255,255,255,0.055);
+    --glow-teal: rgba(0,191,165,0.08);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg-dark);color:var(--text-primary);font-family:'Sora',sans-serif;line-height:1.6;overflow-x:hidden;}
+  .infographic{max-width:1100px;margin:0 auto;padding:60px 32px 80px;position:relative;z-index:1;}
+
+  /* BG */
+  .bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,0.014) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.014) 1px,transparent 1px);background-size:56px 56px;pointer-events:none;z-index:0;}
+  .bg-blob{position:fixed;border-radius:50%;filter:blur(140px);pointer-events:none;z-index:0;}
+  .bg-blob.a{width:500px;height:500px;background:rgba(0,191,165,0.05);top:-100px;right:-80px;}
+  .bg-blob.b{width:400px;height:400px;background:rgba(255,107,107,0.035);bottom:300px;left:-100px;}
+  .bg-blob.c{width:350px;height:350px;background:rgba(206,147,216,0.03);bottom:-40px;right:20%;}
+
+  /* HERO */
+  .hero{text-align:center;margin-bottom:60px;}
+  .hero-badge{display:inline-block;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--accent-teal);border:1px solid rgba(0,191,165,0.3);padding:6px 20px;border-radius:40px;background:rgba(0,191,165,0.05);margin-bottom:24px;}
+  .hero h1{font-size:clamp(32px,5vw,56px);font-weight:800;letter-spacing:-1.5px;line-height:1.1;margin-bottom:14px;background:linear-gradient(135deg,#fff 0%,var(--accent-teal) 50%,var(--accent-sky) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .hero-sub{font-size:16px;color:var(--text-secondary);max-width:750px;margin:0 auto;line-height:1.75;}
+  .hero-sub strong{color:var(--text-primary);}
+
+  /* SECTION HEADERS */
+  .sec-head{display:flex;align-items:center;gap:14px;margin:56px 0 24px;}
+  .sec-num{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--bg-dark);}
+  .sec-head h2{font-size:24px;font-weight:700;letter-spacing:-0.3px;}
+
+  /* DEFINITION CARDS */
+  .def-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;}
+  .def-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:16px;padding:24px;position:relative;overflow:hidden;}
+  .def-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+  .def-card h3{font-size:15px;font-weight:700;margin-bottom:8px;}
+  .def-card p{font-size:13.5px;color:var(--text-secondary);line-height:1.65;}
+  .def-card p strong{color:var(--text-primary);font-weight:600;}
+
+  .dc-teal::before{background:var(--accent-teal);} .dc-teal h3{color:var(--accent-teal);}
+  .dc-coral::before{background:var(--accent-coral);} .dc-coral h3{color:var(--accent-coral);}
+  .dc-sky::before{background:var(--accent-sky);} .dc-sky h3{color:var(--accent-sky);}
+  .dc-gold::before{background:var(--accent-gold);} .dc-gold h3{color:var(--accent-gold);}
+
+  /* FORMULA BOX */
+  .formula-box{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:20px;padding:36px 32px;position:relative;overflow:hidden;}
+  .formula-box::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent-teal),var(--accent-sky),var(--accent-violet));}
+  .formula-label{font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--accent-teal);margin-bottom:18px;}
+  .formula-main{text-align:center;padding:20px 0;margin-bottom:16px;}
+  .formula-eq{font-family:'Fira Code',monospace;font-size:clamp(16px,3vw,26px);font-weight:600;color:var(--text-primary);letter-spacing:0.5px;line-height:1.8;}
+  .formula-eq .hl-teal{color:var(--accent-teal);}
+  .formula-eq .hl-coral{color:var(--accent-coral);}
+  .formula-eq .hl-sky{color:var(--accent-sky);}
+  .formula-eq .hl-gold{color:var(--accent-gold);}
+  .formula-eq .op{color:var(--text-muted);margin:0 4px;}
+
+  .formula-vars{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:8px;}
+  .fv{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid var(--border-subtle);}
+  .fv-sym{font-family:'Fira Code',monospace;font-size:15px;font-weight:600;width:28px;text-align:center;flex-shrink:0;}
+  .fv-desc{font-size:12.5px;color:var(--text-secondary);}
+
+  /* EXAMPLE CARDS */
+  .example-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;}
+  .ex-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:18px;overflow:hidden;transition:transform 0.25s,box-shadow 0.25s;}
+  .ex-card:hover{transform:translateY(-3px);}
+  .ex-top{padding:22px 24px 18px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:12px;}
+  .ex-badge{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;padding:4px 12px;border-radius:6px;flex-shrink:0;}
+  .ex-top h3{font-size:14px;font-weight:600;}
+  .ex-body{padding:20px 24px 24px;}
+  .ex-given{font-size:13px;color:var(--text-secondary);line-height:1.7;margin-bottom:14px;}
+  .ex-given strong{color:var(--text-primary);}
+  .ex-calc{font-family:'Fira Code',monospace;font-size:13px;background:var(--bg-code);border:1px solid var(--border-subtle);border-radius:10px;padding:14px 18px;color:var(--accent-lime);line-height:1.7;margin-bottom:10px;overflow-x:auto;}
+  .ex-result{font-size:14px;font-weight:700;padding:10px 16px;border-radius:8px;text-align:center;}
+
+  .ex-a .ex-badge{background:rgba(0,191,165,0.12);color:var(--accent-teal);}
+  .ex-a .ex-result{background:rgba(0,191,165,0.08);border:1px solid rgba(0,191,165,0.2);color:var(--accent-teal);}
+  .ex-a:hover{box-shadow:0 0 35px rgba(0,191,165,0.08);}
+
+  .ex-b .ex-badge{background:rgba(64,196,255,0.12);color:var(--accent-sky);}
+  .ex-b .ex-result{background:rgba(64,196,255,0.08);border:1px solid rgba(64,196,255,0.2);color:var(--accent-sky);}
+  .ex-b:hover{box-shadow:0 0 35px rgba(64,196,255,0.08);}
+
+  .ex-c .ex-badge{background:rgba(255,213,79,0.12);color:var(--accent-gold);}
+  .ex-c .ex-result{background:rgba(255,213,79,0.08);border:1px solid rgba(255,213,79,0.2);color:var(--accent-gold);}
+  .ex-c:hover{box-shadow:0 0 35px rgba(255,213,79,0.08);}
+
+  /* OPEN VS CLOSED */
+  .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media(max-width:700px){.compare-grid{grid-template-columns:1fr;}}
+  .cmp-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:18px;overflow:hidden;}
+  .cmp-top{padding:22px 24px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:12px;}
+  .cmp-icon{font-size:28px;}
+  .cmp-top h3{font-size:18px;font-weight:700;}
+  .cmp-body{padding:22px 24px 26px;}
+  .cmp-row{display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;}
+  .cmp-row:last-child{margin-bottom:0;}
+  .cmp-key{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:4px 10px;border-radius:5px;flex-shrink:0;margin-top:2px;font-weight:700;}
+  .cmp-val{font-size:13.5px;color:var(--text-secondary);line-height:1.6;}
+  .cmp-val strong{color:var(--text-primary);}
+
+  .cmp-closed .cmp-top h3{color:var(--accent-coral);}
+  .cmp-closed .cmp-key{background:rgba(255,107,107,0.1);color:var(--accent-coral);border:1px solid rgba(255,107,107,0.2);}
+  .cmp-closed:hover{box-shadow:0 0 35px rgba(255,107,107,0.06);}
+
+  .cmp-open .cmp-top h3{color:var(--accent-sky);}
+  .cmp-open .cmp-key{background:rgba(64,196,255,0.1);color:var(--accent-sky);border:1px solid rgba(64,196,255,0.2);}
+  .cmp-open:hover{box-shadow:0 0 35px rgba(64,196,255,0.06);}
+
+  /* JMETER MAPPING */
+  .jm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;}
+  .jm-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:14px;padding:20px;transition:transform 0.2s;}
+  .jm-card:hover{transform:translateY(-2px);}
+  .jm-card h4{font-family:'Fira Code',monospace;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--accent-lime);}
+  .jm-card p{font-size:12.5px;color:var(--text-secondary);line-height:1.6;}
+
+  /* PITFALLS */
+  .pit-list{display:grid;gap:12px;}
+  .pit-item{display:flex;gap:14px;align-items:flex-start;padding:16px 20px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:14px;}
+  .pit-num{font-family:'Space Mono',monospace;font-size:12px;font-weight:700;background:rgba(255,107,107,0.1);color:var(--accent-coral);border:1px solid rgba(255,107,107,0.2);width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+  .pit-text{font-size:13.5px;color:var(--text-secondary);line-height:1.6;}
+  .pit-text strong{color:var(--text-primary);font-weight:600;}
+
+  /* STEPS */
+  .steps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;counter-reset:step;}
+  .step-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:14px;padding:20px 18px;position:relative;counter-increment:step;transition:transform 0.2s;}
+  .step-card:hover{transform:translateY(-2px);box-shadow:0 0 25px var(--glow-teal);}
+  .step-card::before{content:counter(step,decimal-leading-zero);font-family:'Space Mono',monospace;font-size:11px;font-weight:700;color:var(--accent-teal);display:block;margin-bottom:8px;opacity:0.7;}
+  .step-card h4{font-size:14px;font-weight:700;margin-bottom:5px;color:var(--text-primary);}
+  .step-card p{font-size:12px;color:var(--text-muted);line-height:1.55;}
+
+  /* FOOTER */
+  .footer{text-align:center;margin-top:64px;padding-top:28px;border-top:1px solid var(--border-subtle);}
+  .footer p{font-family:'Space Mono',monospace;font-size:12px;color:var(--text-muted);letter-spacing:1px;}
+  .footer .fa{color:var(--accent-teal);}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-blob a"></div>
+<div class="bg-blob b"></div>
+<div class="bg-blob c"></div>
+
+<div class="infographic">
+
+  <!-- ═══ HERO ═══ -->
+  <div class="hero">
+    <div class="hero-badge">Workload Modelling · Performance Testing 101</div>
+    <h1>Workload Modelling &amp; Little's Law</h1>
+    <p class="hero-sub">
+      Workload modelling converts <strong>business usage</strong> into a runnable performance test. <strong>Little's Law</strong> ties desired throughput, transaction time and think-time together to size the number of virtual users you must run.
+    </p>
+  </div>
+
+  <!-- ═══ 1. DEFINITIONS ═══ -->
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--accent-teal)">01</div>
+    <h2>Quick Definitions</h2>
+  </div>
+  <div class="def-grid">
+    <div class="def-card dc-teal">
+      <h3>Workload</h3>
+      <p>The distribution of user activity over time across transactions — e.g., <strong>40% search, 30% view, 20% cart, 10% checkout</strong>. Describes <em>what</em> users do and <em>how often</em>.</p>
+    </div>
+    <div class="def-card dc-coral">
+      <h3>Workload Modelling</h3>
+      <p>Converting business/production usage &amp; NFRs into a <strong>runnable performance scenario</strong> — concurrent users, transaction mix, ramp-up, steady-state, pacing &amp; think-times.</p>
+    </div>
+    <div class="def-card dc-sky">
+      <h3>Iteration</h3>
+      <p>One complete execution of a scripted business transaction — e.g., <strong>Login → Search → Add to Cart → Checkout</strong>.</p>
+    </div>
+    <div class="def-card dc-gold">
+      <h3>Pacing</h3>
+      <p>Average time between the <em>start</em> of two consecutive iterations.<br><strong>Pacing = E2E Response Time + Think Time + Extra Wait</strong></p>
+    </div>
+  </div>
+
+  <!-- ═══ 2. LITTLE'S LAW ═══ -->
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--accent-sky)">02</div>
+    <h2>Little's Law</h2>
+  </div>
+  <div class="formula-box">
+    <div class="formula-label">Classic Formula (Queueing Theory)</div>
+    <div class="formula-main">
+      <div class="formula-eq">
+        <span class="hl-teal">L</span> <span class="op">=</span> <span class="hl-coral">λ</span> <span class="op">×</span> <span class="hl-sky">W</span>
+      </div>
+    </div>
+    <div class="formula-vars">
+      <div class="fv"><div class="fv-sym" style="color:var(--accent-teal)">L</div><div class="fv-desc">Avg items in system → <strong>Concurrent Users</strong></div></div>
+      <div class="fv"><div class="fv-sym" style="color:var(--accent-coral)">λ</div><div class="fv-desc">Arrival rate → <strong>Iterations/sec</strong> (throughput)</div></div>
+      <div class="fv"><div class="fv-sym" style="color:var(--accent-sky)">W</div><div class="fv-desc">Time in system → <strong>Pacing</strong> (seconds)</div></div>
+    </div>
+
+    <div style="margin-top:28px;border-top:1px solid var(--border-subtle);padding-top:24px;">
+      <div class="formula-label">Mapped to Performance Testing</div>
+      <div class="formula-main" style="margin-bottom:0;">
+        <div class="formula-eq" style="font-size:clamp(14px,2.5vw,22px);">
+          <span class="hl-teal">Users</span> <span class="op">=</span> <span class="hl-coral">Iterations/sec</span> <span class="op">×</span> <span class="hl-sky">Pacing</span>
+        </div>
+        <div style="margin-top:14px;font-size:13px;color:var(--text-muted);font-family:'Fira Code',monospace;">
+          Iterations/sec = Users / Pacing &nbsp;·&nbsp; Pacing = Users / Iterations/sec
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 3. EXAMPLES ═══ -->
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--accent-gold)">03</div>
+    <h2>Worked Examples</h2>
+  </div>
+  <div class="example-grid">
+    <!-- Example A -->
+    <div class="ex-card ex-a">
+      <div class="ex-top">
+        <span class="ex-badge">A</span>
+        <h3>Calculate Users from Throughput</h3>
+      </div>
+      <div class="ex-body">
+        <div class="ex-given">
+          Target: <strong>100 iter/sec</strong><br>
+          E2E Response: <strong>1.2s</strong><br>
+          Think Time: <strong>8.0s</strong><br>
+          Pacing = 1.2 + 8.0 = <strong>9.2s</strong>
+        </div>
+        <div class="ex-calc">Users = 100 × 9.2 = <strong style="color:var(--accent-teal)">920</strong></div>
+        <div class="ex-result">920 Virtual Users Needed</div>
+      </div>
+    </div>
+    <!-- Example B -->
+    <div class="ex-card ex-b">
+      <div class="ex-top">
+        <span class="ex-badge">B</span>
+        <h3>Calculate Throughput from Users</h3>
+      </div>
+      <div class="ex-body">
+        <div class="ex-given">
+          Users: <strong>460</strong><br>
+          Pacing: <strong>9.2s</strong>
+        </div>
+        <div class="ex-calc">Iterations/sec = 460 / 9.2 = <strong style="color:var(--accent-sky)">50</strong></div>
+        <div class="ex-result">50 Iterations/sec Achieved</div>
+      </div>
+    </div>
+    <!-- Example C -->
+    <div class="ex-card ex-c">
+      <div class="ex-top">
+        <span class="ex-badge">C</span>
+        <h3>Setting Pacing for Frequency</h3>
+      </div>
+      <div class="ex-body">
+        <div class="ex-given">
+          Users: <strong>300</strong><br>
+          Pacing: <strong>30s</strong> (1 txn every 30s per user)
+        </div>
+        <div class="ex-calc">Iterations/sec = 300 / 30 = <strong style="color:var(--accent-gold)">10</strong></div>
+        <div class="ex-result">10 Iterations/sec Achieved</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 4. OPEN VS CLOSED ═══ -->
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--accent-coral)">04</div>
+    <h2>Open vs Closed Workload Models</h2>
+  </div>
+  <div class="compare-grid">
+    <div class="cmp-card cmp-closed">
+      <div class="cmp-top">
+        <span class="cmp-icon">🔒</span>
+        <h3>Closed Model</h3>
+      </div>
+      <div class="cmp-body">
+        <div class="cmp-row"><span class="cmp-key">How</span><div class="cmp-val">VU loops: <strong>think time + transaction + pacing</strong>. Little's Law applies directly.</div></div>
+        <div class="cmp-row"><span class="cmp-key">Tool</span><div class="cmp-val"><strong>JMeter Thread Group</strong> with loop count &amp; real user pacing</div></div>
+        <div class="cmp-row"><span class="cmp-key">Best For</span><div class="cmp-val"><strong>Fixed logged-in users</strong>, session-based apps, licensing-limited clients, e-commerce browsing</div></div>
+      </div>
+    </div>
+    <div class="cmp-card cmp-open">
+      <div class="cmp-top">
+        <span class="cmp-icon">🌐</span>
+        <h3>Open Model</h3>
+      </div>
+      <div class="cmp-body">
+        <div class="cmp-row"><span class="cmp-key">How</span><div class="cmp-val">Users arrive as <strong>Poisson / fixed arrival rate</strong>. Specify throughput directly.</div></div>
+        <div class="cmp-row"><span class="cmp-key">Tool</span><div class="cmp-val"><strong>Constant Throughput Timer</strong> or <strong>Throughput Shaping Timer</strong> or <strong>Precise Throughput Timer</strong> for fixed iter/sec</div></div>
+        <div class="cmp-row"><span class="cmp-key">Best For</span><div class="cmp-val"><strong>Web traffic, APIs</strong>, synthetic arrival of new users, public-facing endpoints</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 5. JMETER MAPPING ═══ -->
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--accent-lime);color:#111;">05</div>
+    <h2>Mapping to JMeter</h2>
+  </div>
+  <div class="jm-grid">
+    <div class="jm-card">
+      <h4>Thread Group</h4>
+      <p>Number of <strong>Threads (Users)</strong> = virtual users in the test</p>
+    </div>
+    <div class="jm-card">
+      <h4>Think Time</h4>
+      <p><strong>Constant Timer</strong> or <strong>Gaussian Random Timer</strong> to mimic user pause between actions</p>
+    </div>
+    <div class="jm-card">
+      <h4>Pacing</h4>
+      <p>Timer after transaction or outer loop enforcing <strong>E2E + think + extra wait</strong></p>
+    </div>
+    <div class="jm-card">
+      <h4>Throughput Control</h4>
+      <p><strong>Constant Throughput Timer</strong> or <strong>Throughput Shaping Timer</strong> for open-model fixed iter/sec</p>
+    </div>
+    <div class="jm-card">
+      <h4>Synchronizing Timer</h4>
+      <p>Release many threads at once — perfect for <strong>spike &amp; step-up tests</strong></p>
+    </div>
+  </div>
+
+  <!-- ═══ 6. PITFALLS ═══ -->
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--accent-coral)">06</div>
+    <h2>Common Pitfalls</h2>
+  </div>
+  <div class="pit-list">
+    <div class="pit-item">
+      <div class="pit-num">1</div>
+      <div class="pit-text"><strong>Circular pacing definition</strong> — don't define pacing using itself. Pacing = E2E + think + extra_wait.</div>
+    </div>
+    <div class="pit-item">
+      <div class="pit-num">2</div>
+      <div class="pit-text"><strong>Ignoring E2E variability</strong> — Little's Law uses average W. Account for higher percentiles (P90/P95/P99) when sizing.</div>
+    </div>
+    <div class="pit-item">
+      <div class="pit-num">3</div>
+      <div class="pit-text"><strong>Generator bottlenecks</strong> — if load generators are overloaded, measured throughput is wrong. Always monitor generator CPU/RAM/network.</div>
+    </div>
+    <div class="pit-item">
+      <div class="pit-num">4</div>
+      <div class="pit-text"><strong>Cache effects</strong> — warm caches reduce E2E; cold caches increase it. Use realistic cache warm-up before measurement.</div>
+    </div>
+    <div class="pit-item">
+      <div class="pit-num">5</div>
+      <div class="pit-text"><strong>Mix vs single transaction</strong> — multiple transactions with different E2E times? Compute effective pacing per transaction or sum arrival rates.</div>
+    </div>
+    <div class="pit-item">
+      <div class="pit-num">6</div>
+      <div class="pit-text"><strong>Misinterpreting think time</strong> — think time is user idle time, not a way to mask slow servers.</div>
+    </div>
+    <div class="pit-item">
+      <div class="pit-num">7</div>
+      <div class="pit-text"><strong>Open vs Closed confusion</strong> — ensure the tool setting and business expectation match the chosen model.</div>
+    </div>
+  </div>
+
+  <!-- ═══ 7. STEPS ═══ -->
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--accent-violet)">07</div>
+    <h2>Workload Modelling Steps</h2>
+  </div>
+  <div class="steps-grid">
+    <div class="step-card"><h4>Collect Data</h4><p>Production logs, analytics, BA estimates, peak &amp; average traffic, transaction mix</p></div>
+    <div class="step-card"><h4>Decide Model</h4><p>Open (requests/sec) or Closed (concurrent users) based on real traffic</p></div>
+    <div class="step-card"><h4>Measure Baseline</h4><p>Get E2E response times per transaction under low load (avg + percentiles)</p></div>
+    <div class="step-card"><h4>Compute Pacing</h4><p>Pacing = avg E2E + avg think time + extra wait</p></div>
+    <div class="step-card"><h4>Apply Little's Law</h4><p>Calculate required users or iterations/sec from your inputs</p></div>
+    <div class="step-card"><h4>Design Profile</h4><p>Ramp-up (10 min) → Steady state (60 min) → Ramp-down (10 min)</p></div>
+    <div class="step-card"><h4>Implement in Tool</h4><p>Threads, timers, throughput controllers, correlation, parameterization</p></div>
+    <div class="step-card"><h4>Warm Up</h4><p>Preload caches &amp; DB connection pools before measuring steady state</p></div>
+    <div class="step-card"><h4>Run & Validate</h4><p>Actual throughput ≈ planned? If not, diagnose generators or pacing issues</p></div>
+    <div class="step-card"><h4>Analyze & Iterate</h4><p>Check resource metrics, percentiles, bottlenecks. Tune &amp; repeat.</p></div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <p><span class="fa">WORKLOAD MODELLING</span> &middot; Users = Iterations/sec × Pacing &middot; Model It Right &middot; Author: Angshuman Basak</p>
+  </div>
+
+</div>
+</body>
+</html>

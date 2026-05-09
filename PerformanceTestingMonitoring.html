@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Performance Testing Monitoring</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Space+Mono:wght@400;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#080B13;--bg-card:#101524;--bg-alt:#161C30;--bg-code:#0A0D18;
+    /* Category colors */
+    --client:#42A5F5;--server:#FFA726;--apm:#AB47BC;
+    --clientB:rgba(66,165,245,.06);--clientD:rgba(66,165,245,.18);
+    --serverB:rgba(255,167,38,.06);--serverD:rgba(255,167,38,.18);
+    --apmB:rgba(171,71,188,.06);--apmD:rgba(171,71,188,.18);
+    /* Sub colors */
+    --s1:#4FC3F7;--s2:#81C784;--s3:#EF5350;--s4:#26C6DA;
+    --s5:#FF7043;--s6:#FFEE58;--s7:#78909C;--s8:#90CAF9;--s9:#CE93D8;
+    --s10:#EC407A;--s11:#66BB6A;--s12:#FFD54F;
+    --tp:#E8EAF6;--ts:#8E93AD;--tm:#555A72;--border:rgba(255,255,255,.055);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--tp);font-family:'Sora',sans-serif;line-height:1.6;overflow-x:hidden;}
+  .page{max-width:1100px;margin:0 auto;padding:60px 32px 80px;position:relative;z-index:1;}
+  .bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.013) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.013) 1px,transparent 1px);background-size:56px 56px;pointer-events:none;z-index:0;}
+  .bg-blob{position:fixed;border-radius:50%;filter:blur(140px);pointer-events:none;z-index:0;}
+  .bg-blob.a{width:480px;height:480px;background:rgba(66,165,245,.04);top:-80px;left:-100px;}
+  .bg-blob.b{width:380px;height:380px;background:rgba(255,167,38,.03);bottom:400px;right:-80px;}
+  .bg-blob.c{width:320px;height:320px;background:rgba(171,71,188,.03);bottom:-30px;left:25%;}
+
+  .hero{text-align:center;margin-bottom:48px;}
+  .hero-badge{display:inline-block;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--client);border:1px solid var(--clientD);padding:6px 20px;border-radius:40px;background:var(--clientB);margin-bottom:24px;}
+  .hero h1{font-size:clamp(26px,4.5vw,48px);font-weight:800;letter-spacing:-1.5px;line-height:1.15;margin-bottom:14px;background:linear-gradient(135deg,#fff 0%,var(--client) 35%,var(--server) 60%,var(--apm) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .hero-sub{font-size:15px;color:var(--ts);max-width:760px;margin:0 auto;line-height:1.75;}
+  .hero-sub strong{color:var(--tp);}
+  .hero-goals{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:20px;}
+  .hg{font-size:11.5px;font-weight:600;padding:6px 14px;border-radius:30px;background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--ts);}
+
+  /* 3 PILLARS */
+  .pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:48px;}
+  @media(max-width:700px){.pillars{grid-template-columns:1fr;}}
+  .pillar{border-radius:16px;padding:22px 20px;text-align:center;transition:transform .2s;}
+  .pillar:hover{transform:translateY(-3px);}
+  .pil-icon{font-size:32px;margin-bottom:8px;}
+  .pil-title{font-size:16px;font-weight:700;margin-bottom:4px;}
+  .pil-desc{font-size:12px;line-height:1.5;}
+  .pil-client{background:var(--clientB);border:1px solid var(--clientD);}.pil-client .pil-title{color:var(--client);}.pil-client .pil-desc{color:rgba(66,165,245,.7);}
+  .pil-server{background:var(--serverB);border:1px solid var(--serverD);}.pil-server .pil-title{color:var(--server);}.pil-server .pil-desc{color:rgba(255,167,38,.7);}
+  .pil-apm{background:var(--apmB);border:1px solid var(--apmD);}.pil-apm .pil-title{color:var(--apm);}.pil-apm .pil-desc{color:rgba(171,71,188,.7);}
+
+  /* CATEGORY HEADER */
+  .cat-head{display:flex;align-items:center;gap:14px;margin:48px 0 22px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+  .cat-head .cat-icon{font-size:28px;}
+  .cat-head h2{font-size:24px;font-weight:800;letter-spacing:-.5px;flex:1;}
+  .cat-tag{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:5px 14px;border-radius:30px;font-weight:700;}
+
+  /* METRIC CARD */
+  .metric-card{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;overflow:hidden;margin-bottom:18px;transition:transform .25s;}
+  .metric-card:hover{transform:translateY(-2px);}
+  .mc-bar{height:3px;}
+  .mc-head{display:flex;align-items:center;gap:12px;padding:20px 24px 16px;border-bottom:1px solid var(--border);}
+  .mc-letter{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--bg);}
+  .mc-head h3{font-size:17px;font-weight:700;flex:1;}
+  .mc-head .mc-icon{font-size:20px;}
+  .mc-body{padding:18px 24px 22px;}
+
+  .mc-def{font-size:14px;color:var(--ts);line-height:1.7;margin-bottom:14px;padding:12px 16px;border-radius:10px;border-left:3px solid;}
+  .mc-def strong{color:var(--tp);}
+
+  .mc-formula{font-family:'Fira Code',monospace;font-size:13px;padding:10px 16px;border-radius:8px;margin-bottom:12px;overflow-x:auto;}
+
+  /* Mini table */
+  .mc-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:12px;border-radius:10px;overflow:hidden;border:1px solid var(--border);}
+  .mc-table th{background:rgba(255,255,255,.03);font-family:'Space Mono',monospace;font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;padding:9px 14px;text-align:left;border-bottom:1px solid var(--border);}
+  .mc-table td{padding:7px 14px;border-bottom:1px solid var(--border);color:var(--ts);vertical-align:top;}
+  .mc-table tr:last-child td{border-bottom:none;}
+  .mc-table td:first-child{font-weight:600;color:var(--tp);white-space:nowrap;}
+
+  .mc-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+  .mc-tag{font-size:11.5px;font-weight:600;padding:5px 13px;border-radius:28px;}
+
+  .mc-note{font-size:12.5px;color:var(--ts);padding:10px 14px;border-radius:8px;background:rgba(255,255,255,.015);border:1px solid var(--border);line-height:1.6;margin-top:8px;}
+  .mc-note strong{color:var(--tp);}
+
+  .mc-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:640px){.mc-cols{grid-template-columns:1fr;}}
+
+  /* Health gauge */
+  .gauge-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+  .gauge{font-family:'Fira Code',monospace;font-size:11px;font-weight:600;padding:5px 12px;border-radius:6px;}
+  .g-ok{background:rgba(102,187,106,.1);border:1px solid rgba(102,187,106,.2);color:#66BB6A;}
+  .g-mod{background:rgba(255,213,79,.08);border:1px solid rgba(255,213,79,.18);color:#FFD54F;}
+  .g-warn{background:rgba(255,167,38,.1);border:1px solid rgba(255,167,38,.2);color:#FFA726;}
+  .g-crit{background:rgba(239,83,80,.1);border:1px solid rgba(239,83,80,.2);color:#EF5350;}
+
+  /* Color helpers */
+  .c-client .mc-bar{background:var(--client)}.c-client .mc-letter{background:var(--client)}.c-client .mc-head h3{color:var(--client)}.c-client .mc-def{border-color:var(--client);background:var(--clientB)}.c-client .mc-formula{background:var(--clientB);border:1px solid var(--clientD);color:var(--client)}.c-client .mc-table th{color:var(--client)}.c-client .mc-tag{background:var(--clientB);border:1px solid var(--clientD);color:var(--client)}.c-client:hover{box-shadow:0 0 30px rgba(66,165,245,.05);}
+
+  .c-s1 .mc-bar{background:var(--s1)}.c-s1 .mc-letter{background:var(--s1)}.c-s1 .mc-head h3{color:var(--s1)}.c-s1 .mc-def{border-color:var(--s1);background:rgba(79,195,247,.06)}.c-s1 .mc-formula{background:rgba(79,195,247,.06);border:1px solid rgba(79,195,247,.18);color:var(--s1)}.c-s1 .mc-table th{color:var(--s1)}.c-s1 .mc-tag{background:rgba(79,195,247,.06);border:1px solid rgba(79,195,247,.18);color:var(--s1)}.c-s1:hover{box-shadow:0 0 30px rgba(79,195,247,.05);}
+
+  .c-s2 .mc-bar{background:var(--s2)}.c-s2 .mc-letter{background:var(--s2)}.c-s2 .mc-head h3{color:var(--s2)}.c-s2 .mc-def{border-color:var(--s2);background:rgba(129,199,132,.06)}.c-s2 .mc-formula{background:rgba(129,199,132,.06);border:1px solid rgba(129,199,132,.18);color:var(--s2)}.c-s2 .mc-table th{color:var(--s2)}.c-s2 .mc-tag{background:rgba(129,199,132,.06);border:1px solid rgba(129,199,132,.18);color:var(--s2)}.c-s2:hover{box-shadow:0 0 30px rgba(129,199,132,.05);}
+
+  .c-s3 .mc-bar{background:var(--s3)}.c-s3 .mc-letter{background:var(--s3)}.c-s3 .mc-head h3{color:var(--s3)}.c-s3 .mc-def{border-color:var(--s3);background:rgba(239,83,80,.06)}.c-s3 .mc-formula{background:rgba(239,83,80,.06);border:1px solid rgba(239,83,80,.18);color:var(--s3)}.c-s3 .mc-table th{color:var(--s3)}.c-s3 .mc-tag{background:rgba(239,83,80,.06);border:1px solid rgba(239,83,80,.18);color:var(--s3)}.c-s3:hover{box-shadow:0 0 30px rgba(239,83,80,.05);}
+
+  .c-s4 .mc-bar{background:var(--s4)}.c-s4 .mc-letter{background:var(--s4)}.c-s4 .mc-head h3{color:var(--s4)}.c-s4 .mc-def{border-color:var(--s4);background:rgba(38,198,218,.06)}.c-s4 .mc-table th{color:var(--s4)}.c-s4 .mc-tag{background:rgba(38,198,218,.06);border:1px solid rgba(38,198,218,.18);color:var(--s4)}.c-s4:hover{box-shadow:0 0 30px rgba(38,198,218,.05);}
+
+  .c-server .mc-bar{background:var(--server)}.c-server .mc-letter{background:var(--server)}.c-server .mc-head h3{color:var(--server)}.c-server .mc-def{border-color:var(--server);background:var(--serverB)}.c-server .mc-table th{color:var(--server)}.c-server .mc-tag{background:var(--serverB);border:1px solid var(--serverD);color:var(--server)}.c-server:hover{box-shadow:0 0 30px rgba(255,167,38,.05);}
+
+  .c-apm .mc-bar{background:var(--apm)}.c-apm .mc-letter{background:var(--apm)}.c-apm .mc-head h3{color:var(--apm)}.c-apm .mc-def{border-color:var(--apm);background:var(--apmB)}.c-apm .mc-formula{background:var(--apmB);border:1px solid var(--apmD);color:var(--apm)}.c-apm .mc-table th{color:var(--apm)}.c-apm .mc-tag{background:var(--apmB);border:1px solid var(--apmD);color:var(--apm)}.c-apm:hover{box-shadow:0 0 30px rgba(171,71,188,.05);}
+
+  /* E2E EXAMPLE */
+  .e2e{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;overflow:hidden;margin-top:40px;position:relative;}
+  .e2e::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--client),var(--server),var(--apm));}
+  .e2e-head{padding:22px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+  .e2e-head h3{font-size:18px;font-weight:700;}
+  .e2e-body{padding:20px 24px 24px;}
+  .e2e-scenario{font-size:14px;color:var(--ts);margin-bottom:16px;}
+  .e2e-scenario strong{color:var(--tp);}
+  .e2e-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px;}
+  .e2e-metric{padding:14px 16px;border-radius:10px;text-align:center;}
+  .e2e-val{font-family:'Fira Code',monospace;font-size:18px;font-weight:700;display:block;margin-bottom:2px;}
+  .e2e-label{font-size:10px;font-family:'Space Mono',monospace;letter-spacing:1px;text-transform:uppercase;}
+  .em-rt{background:rgba(239,83,80,.08);border:1px solid rgba(239,83,80,.18);}.em-rt .e2e-val{color:var(--s3);}.em-rt .e2e-label{color:var(--s3);}
+  .em-cpu{background:var(--serverB);border:1px solid var(--serverD);}.em-cpu .e2e-val{color:var(--server);}.em-cpu .e2e-label{color:var(--server);}
+  .em-db{background:var(--apmB);border:1px solid var(--apmD);}.em-db .e2e-val{color:var(--apm);}.em-db .e2e-label{color:var(--apm);}
+  .em-err{background:rgba(236,64,122,.08);border:1px solid rgba(236,64,122,.18);}.em-err .e2e-val{color:#EC407A;}.em-err .e2e-label{color:#EC407A;}
+  .em-gc{background:rgba(255,238,88,.06);border:1px solid rgba(255,238,88,.15);}.em-gc .e2e-val{color:#FFEE58;}.em-gc .e2e-label{color:#FFEE58;}
+  .e2e-root{font-family:'Fira Code',monospace;font-size:14px;padding:14px 20px;border-radius:10px;background:rgba(239,83,80,.06);border:1px solid rgba(239,83,80,.18);color:var(--s3);text-align:center;}
+
+  /* SUMMARY TABLE */
+  .sum-head{display:flex;align-items:center;gap:14px;margin:48px 0 20px;}
+  .sum-head h2{font-size:24px;font-weight:700;}
+  .sh-icon{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--bg);background:var(--client);width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;}
+  .sum-wrap{border-radius:16px;overflow:hidden;border:1px solid var(--border);}
+  table.sum{width:100%;border-collapse:collapse;font-size:13px;}
+  .sum thead th{background:var(--bg-alt);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--client);padding:14px 16px;text-align:left;border-bottom:1px solid var(--border);}
+  .sum tbody tr{background:var(--bg-card);}.sum tbody tr:nth-child(even){background:var(--bg-alt);}
+  .sum tbody td{padding:12px 16px;border-bottom:1px solid var(--border);color:var(--ts);line-height:1.5;vertical-align:middle;}
+  .sum tbody tr:last-child td{border-bottom:none;}
+  .sum tbody td:first-child{font-weight:700;color:var(--tp);white-space:nowrap;}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle;}
+
+  .footer{text-align:center;margin-top:64px;padding-top:28px;border-top:1px solid var(--border);}
+  .footer p{font-family:'Space Mono',monospace;font-size:12px;color:var(--tm);letter-spacing:1px;}
+  .footer .fa{color:var(--client);}
+
+  @media(max-width:700px){.mc-head{flex-wrap:wrap;gap:8px;}.e2e-grid{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-blob a"></div>
+<div class="bg-blob b"></div>
+<div class="bg-blob c"></div>
+
+<div class="page">
+
+  <div class="hero">
+    <div class="hero-badge">Monitoring Guide · Performance Engineering</div>
+    <h1>What Do We Monitor During Performance Testing?</h1>
+    <p class="hero-sub">The objective isn't just to generate load — it's to <strong>continuously monitor</strong> the entire system's behavior to identify bottlenecks, validate NFRs, and ensure stability.</p>
+    <div class="hero-goals">
+      <span class="hg">Identify Bottlenecks</span><span class="hg">Detect Failures</span><span class="hg">Validate NFRs</span><span class="hg">Analyze Scalability</span><span class="hg">Find Memory Leaks</span><span class="hg">Detect Slow Queries</span>
+    </div>
+  </div>
+
+  <!-- 3 PILLARS -->
+  <div class="pillars">
+    <div class="pillar pil-client"><div class="pil-icon">👤</div><div class="pil-title">Client-Side</div><div class="pil-desc">User perspective — Response Time, Throughput, Error Rate, Latency</div></div>
+    <div class="pillar pil-server"><div class="pil-icon">🖥️</div><div class="pil-title">Server-Side</div><div class="pil-desc">Infrastructure — CPU, Memory, Disk I/O, Network, Thread Pool</div></div>
+    <div class="pillar pil-apm"><div class="pil-icon">🔬</div><div class="pil-title">APM</div><div class="pil-desc">Code-level — DB Queries, GC, Cache Hit Ratio, Exceptions</div></div>
+  </div>
+
+  <!-- ════════════════════════════════════ CLIENT-SIDE ════════════════════════════════════ -->
+  <div class="cat-head">
+    <span class="cat-icon">👤</span>
+    <h2 style="color:var(--client)">1. Client-Side Metrics</h2>
+    <span class="cat-tag" style="background:var(--clientB);border:1px solid var(--clientD);color:var(--client);">User Perspective</span>
+  </div>
+
+  <!-- A. Response Time -->
+  <div class="metric-card c-s1">
+    <div class="mc-bar"></div>
+    <div class="mc-head"><div class="mc-letter">A</div><h3>Response Time</h3><span class="mc-icon">⏱️</span></div>
+    <div class="mc-body">
+      <div class="mc-def" style="border-color:var(--s1);background:rgba(79,195,247,.06);">Total time from <strong>sending the request</strong> to <strong>receiving the complete response</strong>. Includes network delay, server processing, and data transfer.</div>
+      <div class="mc-formula" style="background:rgba(79,195,247,.06);border:1px solid rgba(79,195,247,.18);color:var(--s1);">Response Time = Network Delay + Server Processing + Data Transfer</div>
+      <table class="mc-table"><thead><tr><th>Metric</th><th>Meaning</th></tr></thead><tbody>
+        <tr><td>Average RT</td><td>Mean of all requests</td></tr>
+        <tr><td>90th Percentile</td><td>90% completed within this time</td></tr>
+        <tr><td>95th Percentile</td><td>Industry standard metric</td></tr>
+        <tr><td>Min / Max RT</td><td>Fastest / slowest request</td></tr>
+      </tbody></table>
+      <div class="mc-note"><strong>NFR Example:</strong> 95% of login requests should complete within 2 seconds.</div>
+    </div>
+  </div>
+
+  <!-- B. Throughput -->
+  <div class="metric-card c-s2">
+    <div class="mc-bar"></div>
+    <div class="mc-head"><div class="mc-letter">B</div><h3>Throughput</h3><span class="mc-icon">📊</span></div>
+    <div class="mc-body">
+      <div class="mc-def" style="border-color:var(--s2);background:rgba(129,199,132,.06);">Number of <strong>requests or transactions processed per unit time</strong>. Measures system capacity — higher throughput = better scalability.</div>
+      <div class="mc-formula" style="background:rgba(129,199,132,.06);border:1px solid rgba(129,199,132,.18);color:var(--s2);">Throughput = Total Requests / Time → e.g. 6000/60 = 100 RPS</div>
+      <div class="mc-tags">
+        <span class="mc-tag" style="background:rgba(129,199,132,.06);border:1px solid rgba(129,199,132,.18);color:var(--s2);">Requests/sec (RPS)</span>
+        <span class="mc-tag" style="background:rgba(129,199,132,.06);border:1px solid rgba(129,199,132,.18);color:var(--s2);">Transactions/sec (TPS)</span>
+        <span class="mc-tag" style="background:rgba(129,199,132,.06);border:1px solid rgba(129,199,132,.18);color:var(--s2);">Hits/sec</span>
+        <span class="mc-tag" style="background:rgba(129,199,132,.06);border:1px solid rgba(129,199,132,.18);color:var(--s2);">Bytes/sec</span>
+      </div>
+      <div class="mc-note"><strong>Low throughput indicates:</strong> Server overload, DB bottleneck, connection pool issue, or network congestion.</div>
+    </div>
+  </div>
+
+  <!-- C. Error Rate -->
+  <div class="metric-card c-s3">
+    <div class="mc-bar"></div>
+    <div class="mc-head"><div class="mc-letter">C</div><h3>Error Rate</h3><span class="mc-icon">⚠️</span></div>
+    <div class="mc-body">
+      <div class="mc-def" style="border-color:var(--s3);background:rgba(239,83,80,.06);"><strong>Percentage of failed requests</strong> compared to total requests. Increasing error rate indicates system instability or resource exhaustion.</div>
+      <div class="mc-formula" style="background:rgba(239,83,80,.06);border:1px solid rgba(239,83,80,.18);color:var(--s3);">Error Rate = (Failed / Total) × 100 → e.g. (200/10000) × 100 = 2%</div>
+      <table class="mc-table"><thead><tr><th>Error</th><th>Meaning</th></tr></thead><tbody>
+        <tr><td>500</td><td>Internal Server Error</td></tr>
+        <tr><td>502</td><td>Bad Gateway</td></tr>
+        <tr><td>503</td><td>Service Unavailable</td></tr>
+        <tr><td>504</td><td>Gateway Timeout</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+
+  <!-- D. Latency -->
+  <div class="metric-card c-s4">
+    <div class="mc-bar"></div>
+    <div class="mc-head"><div class="mc-letter">D</div><h3>Latency</h3><span class="mc-icon">🌐</span></div>
+    <div class="mc-body">
+      <div class="mc-def" style="border-color:var(--s4);background:rgba(38,198,218,.06);">Time between <strong>sending the request</strong> and <strong>receiving the first byte</strong>. Measures initial server responsiveness and network waiting time.</div>
+      <div class="mc-cols">
+        <table class="mc-table"><thead><tr><th>Metric</th><th>Measures</th></tr></thead><tbody>
+          <tr><td>Latency</td><td>Time until first byte</td></tr>
+          <tr><td>Response Time</td><td>Time until full response</td></tr>
+        </tbody></table>
+        <div>
+          <div style="font-family:'Space Mono',monospace;font-size:9.5px;letter-spacing:1px;color:var(--s4);margin-bottom:6px;">HIGH LATENCY INDICATES</div>
+          <div class="mc-tags">
+            <span class="mc-tag" style="background:rgba(38,198,218,.06);border:1px solid rgba(38,198,218,.18);color:var(--s4);">Network Delay</span>
+            <span class="mc-tag" style="background:rgba(38,198,218,.06);border:1px solid rgba(38,198,218,.18);color:var(--s4);">LB Issue</span>
+            <span class="mc-tag" style="background:rgba(38,198,218,.06);border:1px solid rgba(38,198,218,.18);color:var(--s4);">DNS Issue</span>
+            <span class="mc-tag" style="background:rgba(38,198,218,.06);border:1px solid rgba(38,198,218,.18);color:var(--s4);">Slow Backend Init</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════ SERVER-SIDE ════════════════════════════════════ -->
+  <div class="cat-head">
+    <span class="cat-icon">🖥️</span>
+    <h2 style="color:var(--server)">2. Server-Side Metrics</h2>
+    <span class="cat-tag" style="background:var(--serverB);border:1px solid var(--serverD);color:var(--server);">Infrastructure</span>
+  </div>
+
+  <!-- A. CPU -->
+  <div class="metric-card c-server">
+    <div class="mc-bar"></div>
+    <div class="mc-head"><div class="mc-letter">A</div><h3>CPU Utilization</h3><span class="mc-icon">🔥</span></div>
+    <div class="mc-body">
+      <div class="mc-def"><strong>Percentage of processor capacity</strong> being used. High CPU indicates heavy processing, infinite loops, poor optimization, or thread contention.</div>
+      <div class="gauge-row">
+        <span class="gauge g-ok">30% Healthy</span>
+        <span class="gauge g-mod">60% Moderate</span>
+        <span class="gauge g-warn">85% Warning</span>
+        <span class="gauge g-crit">95%+ Critical</span>
+      </div>
+      <div class="mc-note"><strong>Threshold:</strong> CPU should remain below 80% during steady state.</div>
+    </div>
+  </div>
+
+  <!-- B. Memory -->
+  <div class="metric-card c-server">
+    <div class="mc-bar"></div>
+    <div class="mc-head"><div class="mc-letter">B</div><h3>Memory Usage</h3><span class="mc-icon">🧠</span></div>
+    <div class="mc-body">
+      <div class="mc-def">Tracks <strong>RAM, heap memory, non-heap memory, and cache consumption</strong>. If memory increases continuously and never drops — it's a memory leak.</div>
+      <div class="mc-tags">
+        <span class="mc-tag" style="background:var(--serverB);border:1px solid var(--serverD);color:var(--server);">GC Pauses</span>
+        <span class="mc-tag" style="background:var(--serverB);border:1px solid var(--serverD);color:var(--server);">App Crashes</span>
+        <span class="mc-tag" style="background:var(--serverB);border:1px solid var(--serverD);color:var(--server);">OutOfMemoryError</span>
+        <span class="mc-tag" style="background:var(--serverB);border:1px solid var(--serverD);color:var(--server);">Slow Response</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- C. Disk I/O -->
+  <div class="metric-card c-server">
+    <div class="mc-bar"></div>
+    <div class="mc-head"><div class="mc-letter">C</div><h3>Disk I/O</h3><span class="mc-icon">💾</span></div>
+    <div class="mc-body">
+      <div class="mc-def">Measures <strong>read/write operations, disk queue length, and disk latency</strong>. DB-heavy apps depend heavily on disk performance.</div>
+      <div class="mc-tags">
+        <span class="mc-tag" style="background:var(--serverB);border:1px solid var(--serverD);color:var(--server);">Slow DB Queries</span>
+        <span class="mc-tag" style="background:var(--serverB);border:1px solid var(--serverD);color:var(--server);">Long API Response</span>
+        <span class="mc-tag" style="background:var(--serverB);border:1px solid var(--serverD);color:var(--server);">Queue Buildup</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- D. Network -->
+  <div class="metric-card c-server">
+    <div class="mc-bar"></div>
+    <div class="mc-head"><div class="mc-letter">D</div><h3>Network Bandwidth</h3><span class="mc-icon">📡</span></div>
+    <div class="mc-body">
+      <div class="mc-def"><strong>Amount of data transferred</strong> over the network. When utilization approaches capacity → saturation, packet drops, increased latency.</div>
+      <div class="mc-tags">
+        <span class="mc-tag" style="background:var(--serverB);border:1px solid var(--serverD);color:var(--server);">Packet Drops</span>
+        <span class="mc-tag" style="background:var(--serverB);border:1px solid var(--serverD);color:var(--server);">Increased Latency</span>
+        <span class="mc-tag" style="background:var(--serverB);border:1px solid var(--serverD);color:var(--server);">Request Timeout</span>
+        <span class="mc-tag" style="background:var(--serverB);border:1px solid var(--serverD);color:var(--server);">Reduced Throughput</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- E. Thread Pool -->
+  <div class="metric-card c-server">
+    <div class="mc-bar"></div>
+    <div class="mc-head"><div class="mc-letter">E</div><h3>Thread Count / Connection Pool</h3><span class="mc-icon">🧵</span></div>
+    <div class="mc-body">
+      <div class="mc-def">Monitors <strong>active application threads, DB connection pool usage, and HTTP connections</strong>. When pool is maxed → new requests queue up → timeouts.</div>
+      <table class="mc-table"><thead><tr><th>Component</th><th>Monitoring Tool</th></tr></thead><tbody>
+        <tr><td>Linux Server</td><td>top, vmstat, iostat</td></tr>
+        <tr><td>Windows</td><td>PerfMon</td></tr>
+        <tr><td>Database</td><td>Oracle AWR, SQL Profiler</td></tr>
+        <tr><td>JVM</td><td>JConsole, VisualVM</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════ APM ════════════════════════════════════ -->
+  <div class="cat-head">
+    <span class="cat-icon">🔬</span>
+    <h2 style="color:var(--apm)">3. Application Performance Monitoring</h2>
+    <span class="cat-tag" style="background:var(--apmB);border:1px solid var(--apmD);color:var(--apm);">Code-Level</span>
+  </div>
+
+  <div class="metric-card c-apm" style="margin-bottom:18px;">
+    <div class="mc-bar"></div>
+    <div class="mc-head"><div class="mc-letter" style="font-size:11px;">APM</div><h3>Popular APM Tools</h3><span class="mc-icon">🛠️</span></div>
+    <div class="mc-body">
+      <div class="mc-tags">
+        <span class="mc-tag">New Relic</span><span class="mc-tag">AppDynamics</span><span class="mc-tag">Dynatrace</span><span class="mc-tag">Datadog</span><span class="mc-tag">Splunk</span><span class="mc-tag">Grafana</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- A. DB Query Time -->
+  <div class="metric-card c-apm">
+    <div class="mc-bar"></div>
+    <div class="mc-head"><div class="mc-letter">A</div><h3>Database Query Time</h3><span class="mc-icon">🗄️</span></div>
+    <div class="mc-body">
+      <div class="mc-def">Measures <strong>execution time of SQL queries</strong>. Slow queries cause slow APIs, thread blocking, high CPU, and lock contention.</div>
+      <div class="mc-note"><strong>Example:</strong> SELECT * FROM ORDERS WHERE CUSTOMER_ID='1001' → takes 8 seconds under load. This is a slow query that cascades into full app degradation.</div>
+    </div>
+  </div>
+
+  <!-- B. GC -->
+  <div class="metric-card c-apm">
+    <div class="mc-bar"></div>
+    <div class="mc-head"><div class="mc-letter">B</div><h3>Garbage Collection (GC)</h3><span class="mc-icon">♻️</span></div>
+    <div class="mc-body">
+      <div class="mc-def">GC frees unused memory in Java apps. Frequent GC causes <strong>Stop-The-World pauses</strong> — application temporarily freezes.</div>
+      <div class="mc-note"><strong>Example:</strong> GC runs every 2 seconds → response time spikes from 1s → 12s. Monitor via GC Logs, VisualVM, JConsole, Grafana JVM dashboards.</div>
+    </div>
+  </div>
+
+  <!-- C. Cache Hit Ratio -->
+  <div class="metric-card c-apm">
+    <div class="mc-bar"></div>
+    <div class="mc-head"><div class="mc-letter">C</div><h3>Cache Hit Ratio</h3><span class="mc-icon">💨</span></div>
+    <div class="mc-body">
+      <div class="mc-def">Measures <strong>how effectively cache serves requests</strong>. Low ratio = more DB hits = higher load, slower responses.</div>
+      <div class="mc-formula">Cache Hit Ratio = (Cache Hits / Total Requests) × 100 → e.g. 90/100 = 90%</div>
+    </div>
+  </div>
+
+  <!-- ═══ E2E EXAMPLE ═══ -->
+  <div class="e2e">
+    <div class="e2e-head"><span style="font-size:22px;">🎯</span><h3>End-to-End Monitoring Example</h3></div>
+    <div class="e2e-body">
+      <div class="e2e-scenario"><strong>Login API response becomes slow</strong> — monitoring reveals:</div>
+      <div class="e2e-grid">
+        <div class="e2e-metric em-rt"><span class="e2e-val">10 sec</span><span class="e2e-label">Response Time</span></div>
+        <div class="e2e-metric em-cpu"><span class="e2e-val">95%</span><span class="e2e-label">CPU Usage</span></div>
+        <div class="e2e-metric em-db"><span class="e2e-val">8 sec</span><span class="e2e-label">DB Query Time</span></div>
+        <div class="e2e-metric em-err"><span class="e2e-val">12%</span><span class="e2e-label">Error Rate</span></div>
+        <div class="e2e-metric em-gc"><span class="e2e-val">Very High</span><span class="e2e-label">GC Activity</span></div>
+      </div>
+      <div class="e2e-root">⚡ Root Cause: Slow SQL query causing CPU spike and GC pressure</div>
+    </div>
+  </div>
+
+  <!-- ═══ SUMMARY TABLE ═══ -->
+  <div class="sum-head"><div class="sh-icon">∑</div><h2>Monitoring Summary</h2></div>
+  <div class="sum-wrap">
+    <table class="sum">
+      <thead><tr><th>Category</th><th>Metrics</th></tr></thead>
+      <tbody>
+        <tr><td><span class="dot" style="background:var(--client)"></span>Client-Side</td><td>Response Time, Throughput, Error Rate, Latency</td></tr>
+        <tr><td><span class="dot" style="background:var(--server)"></span>Server-Side</td><td>CPU, Memory, Disk I/O, Network, Thread Pool</td></tr>
+        <tr><td><span class="dot" style="background:var(--apm)"></span>APM</td><td>DB Queries, GC, Cache Hit Ratio, Exceptions</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    <p><span class="fa">MONITORING</span> &middot; Client + Server + APM &middot; Find It Before Users Do &middot; Author: Angshuman Basak</p>
+  </div>
+
+</div>
+</body>
+</html>

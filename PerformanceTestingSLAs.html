@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SLAs in Performance Testing</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Space+Mono:wght@400;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#080B13;--bg-card:#101524;--bg-alt:#161C30;--bg-code:#0B0E1A;
+    --c1:#4FC3F7;--c2:#FF7043;--c3:#FFD54F;--c4:#81C784;--c5:#BA68C8;--c6:#4DD0E1;
+    --c1b:rgba(79,195,247,.06);--c1d:rgba(79,195,247,.18);
+    --c2b:rgba(255,112,67,.06);--c2d:rgba(255,112,67,.18);
+    --c3b:rgba(255,213,79,.05);--c3d:rgba(255,213,79,.16);
+    --c4b:rgba(129,199,132,.06);--c4d:rgba(129,199,132,.18);
+    --c5b:rgba(186,104,200,.06);--c5d:rgba(186,104,200,.18);
+    --c6b:rgba(77,208,225,.06);--c6d:rgba(77,208,225,.18);
+    --pass:#66BB6A;--fail:#EF5350;
+    --tp:#E8EAF6;--ts:#8E93AD;--tm:#555A72;--border:rgba(255,255,255,.055);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--tp);font-family:'Sora',sans-serif;line-height:1.6;overflow-x:hidden;}
+  .page{max-width:1100px;margin:0 auto;padding:60px 32px 80px;position:relative;z-index:1;}
+  .bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.013) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.013) 1px,transparent 1px);background-size:56px 56px;pointer-events:none;z-index:0;}
+  .bg-blob{position:fixed;border-radius:50%;filter:blur(140px);pointer-events:none;z-index:0;}
+  .bg-blob.a{width:480px;height:480px;background:rgba(79,195,247,.045);top:-80px;left:-100px;}
+  .bg-blob.b{width:380px;height:380px;background:rgba(186,104,200,.03);bottom:300px;right:-80px;}
+  .bg-blob.c{width:320px;height:320px;background:rgba(255,213,79,.025);bottom:-30px;left:30%;}
+
+  /* HERO */
+  .hero{text-align:center;margin-bottom:56px;}
+  .hero-badge{display:inline-block;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--c1);border:1px solid rgba(79,195,247,.3);padding:6px 20px;border-radius:40px;background:rgba(79,195,247,.05);margin-bottom:24px;}
+  .hero h1{font-size:clamp(30px,5vw,54px);font-weight:800;letter-spacing:-1.5px;line-height:1.1;margin-bottom:14px;background:linear-gradient(135deg,#fff 0%,var(--c1) 50%,var(--c5) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .hero-sub{font-size:15.5px;color:var(--ts);max-width:740px;margin:0 auto;line-height:1.75;}
+  .hero-sub strong{color:var(--tp);}
+
+  /* INTRO CARD */
+  .intro-card{background:var(--bg-card);border:1px solid var(--border);border-radius:22px;padding:36px 32px;position:relative;overflow:hidden;margin-bottom:20px;}
+  .intro-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--c1),var(--c5),var(--c6));}
+  .intro-def{font-size:17px;color:var(--ts);line-height:1.8;margin-bottom:22px;}
+  .intro-def strong{color:var(--tp);font-weight:700;}
+
+  .intro-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:700px){.intro-cols{grid-template-columns:1fr;}}
+
+  .intro-box{border-radius:14px;padding:20px 22px;}
+  .intro-box-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;font-weight:700;}
+  .intro-list{list-style:none;padding:0;}
+  .intro-list li{font-size:13.5px;color:var(--ts);padding:6px 0 6px 22px;position:relative;line-height:1.55;}
+  .intro-list li::before{content:'▸';position:absolute;left:2px;top:6px;font-size:12px;}
+  .intro-list li strong{color:var(--tp);font-weight:600;}
+
+  .iq-box{background:var(--c1b);border:1px solid var(--c1d);}
+  .iq-box .intro-box-label{color:var(--c1);}
+  .iq-box .intro-list li::before{color:var(--c1);}
+
+  .iw-box{background:var(--c4b);border:1px solid var(--c4d);}
+  .iw-box .intro-box-label{color:var(--c4);}
+  .iw-box .intro-list li::before{color:var(--c4);}
+
+  .measure-strip{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;}
+  .m-chip{font-size:12.5px;font-weight:600;padding:8px 18px;border-radius:40px;background:var(--c5b);border:1px solid var(--c5d);color:var(--c5);}
+
+  /* SEC HEAD */
+  .sec-head{display:flex;align-items:center;gap:14px;margin:52px 0 24px;}
+  .sec-num{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--bg);}
+  .sec-head h2{font-size:24px;font-weight:700;letter-spacing:-.3px;}
+
+  /* ═══ SLA TYPE CARDS ═══ */
+  .sla-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px;}
+
+  .sla-card{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;overflow:hidden;transition:transform .25s,box-shadow .25s;display:flex;flex-direction:column;}
+  .sla-card:hover{transform:translateY(-3px);}
+
+  .sc-top{display:flex;align-items:center;gap:12px;padding:22px 24px 18px;border-bottom:1px solid var(--border);}
+  .sc-num{font-family:'Space Mono',monospace;font-size:12px;font-weight:700;width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--bg);}
+  .sc-top h3{font-size:15.5px;font-weight:700;flex:1;line-height:1.35;}
+  .sc-top .sc-icon{font-size:22px;}
+
+  .sc-body{padding:20px 24px 24px;flex:1;display:flex;flex-direction:column;}
+  .sc-desc{font-size:13.5px;color:var(--ts);line-height:1.65;margin-bottom:16px;flex:1;}
+  .sc-desc strong{color:var(--tp);font-weight:600;}
+
+  .sc-example{border-radius:12px;padding:16px 18px;margin-bottom:12px;}
+  .sc-ex-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;font-weight:700;}
+  .sc-sla-val{font-family:'Fira Code',monospace;font-size:15px;font-weight:600;margin-bottom:6px;}
+
+  .sc-verdict{display:flex;gap:8px;align-items:center;margin-top:auto;}
+  .sc-pass,.sc-fail{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;padding:5px 14px;border-radius:6px;letter-spacing:.5px;}
+  .sc-pass{background:rgba(102,187,106,.1);border:1px solid rgba(102,187,106,.25);color:var(--pass);}
+  .sc-fail{background:rgba(239,83,80,.1);border:1px solid rgba(239,83,80,.25);color:var(--fail);}
+  .sc-fail-text{font-size:12px;color:var(--ts);}
+
+  /* Card Colors */
+  .s1 .sc-num{background:var(--c1)}.s1 .sc-top h3{color:var(--c1)}.s1 .sc-example{background:var(--c1b);border:1px solid var(--c1d)}.s1 .sc-ex-label{color:var(--c1)}.s1 .sc-sla-val{color:var(--c1)}.s1:hover{box-shadow:0 0 35px rgba(79,195,247,.07);}
+  .s2 .sc-num{background:var(--c2)}.s2 .sc-top h3{color:var(--c2)}.s2 .sc-example{background:var(--c2b);border:1px solid var(--c2d)}.s2 .sc-ex-label{color:var(--c2)}.s2 .sc-sla-val{color:var(--c2)}.s2:hover{box-shadow:0 0 35px rgba(255,112,67,.07);}
+  .s3 .sc-num{background:var(--c3);color:#1a1a1a}.s3 .sc-top h3{color:var(--c3)}.s3 .sc-example{background:var(--c3b);border:1px solid var(--c3d)}.s3 .sc-ex-label{color:var(--c3)}.s3 .sc-sla-val{color:var(--c3)}.s3:hover{box-shadow:0 0 35px rgba(255,213,79,.06);}
+  .s4 .sc-num{background:var(--c4)}.s4 .sc-top h3{color:var(--c4)}.s4 .sc-example{background:var(--c4b);border:1px solid var(--c4d)}.s4 .sc-ex-label{color:var(--c4)}.s4 .sc-sla-val{color:var(--c4)}.s4:hover{box-shadow:0 0 35px rgba(129,199,132,.07);}
+  .s5 .sc-num{background:var(--c5)}.s5 .sc-top h3{color:var(--c5)}.s5 .sc-example{background:var(--c5b);border:1px solid var(--c5d)}.s5 .sc-ex-label{color:var(--c5)}.s5 .sc-sla-val{color:var(--c5)}.s5:hover{box-shadow:0 0 35px rgba(186,104,200,.07);}
+  .s6 .sc-num{background:var(--c6)}.s6 .sc-top h3{color:var(--c6)}.s6 .sc-example{background:var(--c6b);border:1px solid var(--c6d)}.s6 .sc-ex-label{color:var(--c6)}.s6 .sc-sla-val{color:var(--c6)}.s6:hover{box-shadow:0 0 35px rgba(77,208,225,.07);}
+
+  /* ═══ SUMMARY TABLE ═══ */
+  .sum-head{display:flex;align-items:center;gap:14px;margin:52px 0 22px;}
+  .sum-head .sh-icon{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--bg);background:var(--c1);width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;}
+  .sum-head h2{font-size:24px;font-weight:700;}
+  .sum-wrap{border-radius:16px;overflow:hidden;border:1px solid var(--border);}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  thead th{background:var(--bg-alt);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--c1);padding:14px 16px;text-align:left;border-bottom:1px solid var(--border);}
+  tbody tr{background:var(--bg-card);}tbody tr:nth-child(even){background:var(--bg-alt);}
+  tbody td{padding:12px 16px;border-bottom:1px solid var(--border);color:var(--ts);line-height:1.55;vertical-align:top;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody td:first-child{font-weight:700;color:var(--tp);}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle;}
+  .d1{background:var(--c1)}.d2{background:var(--c2)}.d3{background:var(--c3)}.d4{background:var(--c4)}.d5{background:var(--c5)}.d6{background:var(--c6)}
+  .sla-val-cell{font-family:'Fira Code',monospace;font-size:12.5px;color:var(--tp);}
+
+  @media(max-width:700px){
+    .sla-grid{grid-template-columns:1fr;}
+    table{font-size:11.5px;}thead th,tbody td{padding:10px 12px;}
+  }
+
+  .footer{text-align:center;margin-top:64px;padding-top:28px;border-top:1px solid var(--border);}
+  .footer p{font-family:'Space Mono',monospace;font-size:12px;color:var(--tm);letter-spacing:1px;}
+  .footer .fa{color:var(--c1);}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-blob a"></div>
+<div class="bg-blob b"></div>
+<div class="bg-blob c"></div>
+
+<div class="page">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-badge">SLAs · Performance Testing 101</div>
+    <h1>SLAs in Performance Testing</h1>
+    <p class="hero-sub">
+      Service Level Agreements define <strong>clear pass/fail criteria</strong> for performance tests — ensuring expectations are aligned, results are measurable, and performance is predictable.
+    </p>
+  </div>
+
+  <!-- ═══ INTRO CARD ═══ -->
+  <div class="intro-card">
+    <div class="intro-def">
+      An <strong>SLA (Service Level Agreement)</strong> is a mutually agreed <strong>performance target</strong> between the client and the performance testing team. It defines what acceptable performance looks like — and when the system fails the test.
+    </div>
+    <div class="intro-cols">
+      <div class="intro-box iq-box">
+        <div class="intro-box-label">SLAs Help Answer</div>
+        <ul class="intro-list">
+          <li><strong>What</strong> is acceptable performance?</li>
+          <li><strong>When</strong> does the system fail the test?</li>
+          <li><strong>Which metrics</strong> must stay within limits?</li>
+        </ul>
+      </div>
+      <div class="intro-box iw-box">
+        <div class="intro-box-label">Why SLAs Matter</div>
+        <ul class="intro-list">
+          <li>Performance is <strong>predictable</strong></li>
+          <li>Expectations are <strong>aligned</strong></li>
+          <li>Results are <strong>not subjective</strong></li>
+          <li>Pass/fail is <strong>measurable</strong></li>
+        </ul>
+      </div>
+    </div>
+    <div class="measure-strip">
+      <span class="m-chip">📏 Across entire test run (e.g., 1-hour test)</span>
+      <span class="m-chip">⏱️ Across time intervals (e.g., every 1 minute)</span>
+    </div>
+  </div>
+
+  <!-- ═══ SLA TYPES ═══ -->
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--c1)">✦</div>
+    <h2>6 Types of SLAs</h2>
+  </div>
+
+  <div class="sla-grid">
+
+    <!-- 1 -->
+    <div class="sla-card s1">
+      <div class="sc-top">
+        <div class="sc-num">01</div>
+        <h3>Avg Response Time per Interval</h3>
+        <span class="sc-icon">⏱️</span>
+      </div>
+      <div class="sc-body">
+        <div class="sc-desc">Checks average response time of a transaction <strong>every minute</strong> (or other interval). If any interval exceeds the threshold → SLA FAIL.</div>
+        <div class="sc-example">
+          <div class="sc-ex-label">SLA Threshold</div>
+          <div class="sc-sla-val">Checkout Avg RT &lt; 800 ms / minute</div>
+        </div>
+        <div class="sc-verdict">
+          <span class="sc-pass">✓ 620 ms</span>
+          <span class="sc-fail">✗ 950 ms</span>
+          <span class="sc-fail-text">→ Any minute &gt; 800ms = FAIL</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2 -->
+    <div class="sla-card s2">
+      <div class="sc-top">
+        <div class="sc-num">02</div>
+        <h3>Errors per Second per Interval</h3>
+        <span class="sc-icon">⚠️</span>
+      </div>
+      <div class="sc-body">
+        <div class="sc-desc">Measures how many errors occur <strong>every second</strong> during the test. A sudden spike in errors triggers SLA failure.</div>
+        <div class="sc-example">
+          <div class="sc-ex-label">SLA Threshold</div>
+          <div class="sc-sla-val">Error Rate &lt; 1 error/sec</div>
+        </div>
+        <div class="sc-verdict">
+          <span class="sc-pass">✓ 0.3 err/s</span>
+          <span class="sc-fail">✗ 5 err/s</span>
+          <span class="sc-fail-text">→ Spike above 1 = FAIL</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 -->
+    <div class="sla-card s3">
+      <div class="sc-top">
+        <div class="sc-num">03</div>
+        <h3>Total Hits per Run</h3>
+        <span class="sc-icon">🎯</span>
+      </div>
+      <div class="sc-body">
+        <div class="sc-desc">Total number of requests the system should process in the <strong>entire test run</strong>. Measures overall capacity delivery.</div>
+        <div class="sc-example">
+          <div class="sc-ex-label">SLA Threshold (1-Hour Test)</div>
+          <div class="sc-sla-val">Total Hits ≥ 200,000</div>
+        </div>
+        <div class="sc-verdict">
+          <span class="sc-pass">✓ 215K</span>
+          <span class="sc-fail">✗ 150K</span>
+          <span class="sc-fail-text">→ Below 200K = FAIL</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 -->
+    <div class="sla-card s4">
+      <div class="sc-top">
+        <div class="sc-num">04</div>
+        <h3>Avg Hits/sec per Run</h3>
+        <span class="sc-icon">📈</span>
+      </div>
+      <div class="sc-body">
+        <div class="sc-desc">Average number of requests the system handles <strong>each second</strong> across the whole test. Measures sustained throughput.</div>
+        <div class="sc-example">
+          <div class="sc-ex-label">SLA Threshold</div>
+          <div class="sc-sla-val">Avg Hits ≥ 100 hits/sec</div>
+        </div>
+        <div class="sc-verdict">
+          <span class="sc-pass">✓ 112 h/s</span>
+          <span class="sc-fail">✗ 75 h/s</span>
+          <span class="sc-fail-text">→ Below 100 = FAIL</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5 -->
+    <div class="sla-card s5">
+      <div class="sc-top">
+        <div class="sc-num">05</div>
+        <h3>Total Throughput (bytes) per Run</h3>
+        <span class="sc-icon">💾</span>
+      </div>
+      <div class="sc-body">
+        <div class="sc-desc">Total amount of data processed (<strong>sent + received</strong>) during the full test. Validates data capacity.</div>
+        <div class="sc-example">
+          <div class="sc-ex-label">SLA Threshold (1-Hour Test)</div>
+          <div class="sc-sla-val">Total Throughput ≥ 20 GB</div>
+        </div>
+        <div class="sc-verdict">
+          <span class="sc-pass">✓ 23 GB</span>
+          <span class="sc-fail">✗ 12 GB</span>
+          <span class="sc-fail-text">→ Below 20 GB = FAIL</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6 -->
+    <div class="sla-card s6">
+      <div class="sc-top">
+        <div class="sc-num">06</div>
+        <h3>Avg Throughput (bytes/sec) per Run</h3>
+        <span class="sc-icon">🌊</span>
+      </div>
+      <div class="sc-body">
+        <div class="sc-desc">Average data transfer rate across the <strong>entire test</strong>. Ensures consistent bandwidth and data flow.</div>
+        <div class="sc-example">
+          <div class="sc-ex-label">SLA Threshold</div>
+          <div class="sc-sla-val">Avg Throughput ≥ 500 KB/sec</div>
+        </div>
+        <div class="sc-verdict">
+          <span class="sc-pass">✓ 580 KB/s</span>
+          <span class="sc-fail">✗ 300 KB/s</span>
+          <span class="sc-fail-text">→ Below 500 = FAIL</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══ SUMMARY TABLE ═══ -->
+  <div class="sum-head">
+    <div class="sh-icon">∑</div>
+    <h2>Quick Reference Summary</h2>
+  </div>
+  <div class="sum-wrap">
+    <table>
+      <thead><tr><th>SLA Type</th><th>Meaning</th><th>Threshold Example</th></tr></thead>
+      <tbody>
+        <tr><td><span class="dot d1"></span>Avg Response Time / Interval</td><td>RT must stay within limit every minute</td><td class="sla-val-cell">&lt; 800 ms / min</td></tr>
+        <tr><td><span class="dot d2"></span>Errors per Second</td><td>Error rate threshold per interval</td><td class="sla-val-cell">&lt; 1 error/sec</td></tr>
+        <tr><td><span class="dot d3"></span>Total Hits per Run</td><td>Total requests in entire test</td><td class="sla-val-cell">≥ 200,000 hits</td></tr>
+        <tr><td><span class="dot d4"></span>Avg Hits/sec</td><td>Avg requests per second</td><td class="sla-val-cell">≥ 100 hits/sec</td></tr>
+        <tr><td><span class="dot d5"></span>Total Throughput (bytes)</td><td>Total data processed</td><td class="sla-val-cell">≥ 20 GB</td></tr>
+        <tr><td><span class="dot d6"></span>Avg Throughput (bytes/sec)</td><td>Data rate per second</td><td class="sla-val-cell">≥ 500 KB/sec</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <p><span class="fa">SLAs</span> &middot; Define It &middot; Measure It &middot; Pass or Fail &middot; No Ambiguity &middot; Author: Angshuman Basak</p>
+  </div>
+
+</div>
+</body>
+</html>

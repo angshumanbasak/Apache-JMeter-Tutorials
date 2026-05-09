@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JMeter Non-GUI Mode Command</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Space+Mono:wght@400;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#080B13;--bg-card:#101524;--bg-alt:#161C30;--bg-code:#0A0D18;
+    --cmd-green:#A5D6A7;--cmd-cyan:#80DEEA;--cmd-orange:#FFCC80;--cmd-pink:#F48FB1;--cmd-purple:#CE93D8;--cmd-blue:#90CAF9;
+    --c1:#66BB6A;--c2:#FF7043;--c3:#42A5F5;--c4:#FFA726;--c5:#AB47BC;--c6:#26C6DA;
+    --c1b:rgba(102,187,106,.06);--c1d:rgba(102,187,106,.18);
+    --c2b:rgba(255,112,67,.06);--c2d:rgba(255,112,67,.18);
+    --c3b:rgba(66,165,245,.06);--c3d:rgba(66,165,245,.18);
+    --c4b:rgba(255,167,38,.06);--c4d:rgba(255,167,38,.18);
+    --c5b:rgba(171,71,188,.06);--c5d:rgba(171,71,188,.18);
+    --c6b:rgba(38,198,218,.06);--c6d:rgba(38,198,218,.18);
+    --tp:#E8EAF6;--ts:#8E93AD;--tm:#555A72;--border:rgba(255,255,255,.055);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--tp);font-family:'Sora',sans-serif;line-height:1.6;overflow-x:hidden;}
+  .page{max-width:1100px;margin:0 auto;padding:60px 32px 80px;position:relative;z-index:1;}
+  .bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.013) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.013) 1px,transparent 1px);background-size:56px 56px;pointer-events:none;z-index:0;}
+  .bg-blob{position:fixed;border-radius:50%;filter:blur(140px);pointer-events:none;z-index:0;}
+  .bg-blob.a{width:480px;height:480px;background:rgba(102,187,106,.04);top:-80px;left:-100px;}
+  .bg-blob.b{width:380px;height:380px;background:rgba(171,71,188,.03);bottom:350px;right:-80px;}
+  .bg-blob.c{width:320px;height:320px;background:rgba(66,165,245,.03);bottom:-30px;left:30%;}
+
+  /* HERO */
+  .hero{text-align:center;margin-bottom:48px;}
+  .hero-badge{display:inline-block;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--c1);border:1px solid rgba(102,187,106,.3);padding:6px 20px;border-radius:40px;background:rgba(102,187,106,.05);margin-bottom:24px;}
+  .hero h1{font-size:clamp(28px,4.5vw,50px);font-weight:800;letter-spacing:-1.5px;line-height:1.15;margin-bottom:14px;background:linear-gradient(135deg,#fff 0%,var(--c1) 50%,var(--c3) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .hero-sub{font-size:15px;color:var(--ts);max-width:720px;margin:0 auto;line-height:1.75;}
+  .hero-sub strong{color:var(--tp);}
+
+  /* ═══ THE COMMAND ═══ */
+  .cmd-showcase{background:var(--bg-card);border:1px solid var(--border);border-radius:22px;overflow:hidden;margin-bottom:36px;position:relative;}
+  .cmd-showcase::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--c1),var(--c2),var(--c3),var(--c4),var(--c5),var(--c6));}
+
+  .cmd-bar{display:flex;align-items:center;gap:8px;padding:14px 24px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.15);}
+  .cmd-dot{width:10px;height:10px;border-radius:50%;}
+  .cmd-bar-title{font-family:'Space Mono',monospace;font-size:11px;color:var(--tm);margin-left:8px;letter-spacing:.5px;}
+
+  .cmd-code{padding:28px 28px;overflow-x:auto;}
+  .cmd-line{font-family:'Fira Code',monospace;font-size:clamp(12px,1.8vw,16px);line-height:2.2;white-space:nowrap;}
+  .cmd-line .prompt{color:var(--tm);}
+  .cmd-line .exec{color:var(--cmd-green);font-weight:600;}
+  .cmd-line .flag{color:var(--cmd-cyan);font-weight:600;}
+  .cmd-line .param{color:var(--cmd-orange);}
+  .cmd-line .flag2{color:var(--cmd-pink);font-weight:600;}
+  .cmd-line .flag3{color:var(--cmd-purple);font-weight:600;}
+  .cmd-line .param2{color:var(--cmd-blue);}
+
+  .cmd-legend{display:flex;flex-wrap:wrap;gap:10px;padding:0 28px 24px;}
+  .cmd-leg-item{display:flex;align-items:center;gap:6px;font-size:11px;font-family:'Space Mono',monospace;color:var(--ts);}
+  .cmd-leg-dot{width:8px;height:8px;border-radius:3px;flex-shrink:0;}
+
+  /* WINDOWS NOTE */
+  .win-note{display:flex;align-items:center;gap:10px;padding:14px 24px;background:rgba(255,255,255,.015);border-top:1px solid var(--border);font-size:12.5px;color:var(--ts);}
+  .win-note strong{color:var(--tp);}
+  .win-note .wn-icon{font-size:16px;flex-shrink:0;}
+
+  /* ═══ PARAMETER CARDS ═══ */
+  .sec-head{display:flex;align-items:center;gap:14px;margin:48px 0 24px;}
+  .sec-head h2{font-size:24px;font-weight:700;letter-spacing:-.3px;}
+  .sec-icon{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--bg);}
+
+  .param-card{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;overflow:hidden;margin-bottom:20px;transition:transform .25s;}
+  .param-card:hover{transform:translateY(-3px);}
+
+  .pc-bar{height:3px;}
+  .pc-head{display:flex;align-items:center;gap:14px;padding:22px 26px 18px;border-bottom:1px solid var(--border);}
+  .pc-flag{font-family:'Fira Code',monospace;font-size:16px;font-weight:700;padding:6px 16px;border-radius:8px;flex-shrink:0;}
+  .pc-head h3{font-size:17px;font-weight:700;flex:1;}
+  .pc-head .pc-icon{font-size:22px;}
+
+  .pc-body{padding:22px 26px 26px;}
+  .pc-desc{font-size:14px;color:var(--ts);line-height:1.75;margin-bottom:16px;}
+  .pc-desc strong{color:var(--tp);font-weight:600;}
+
+  .pc-example{border-radius:12px;padding:14px 18px;margin-bottom:14px;position:relative;}
+  .pc-ex-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;position:absolute;top:-8px;left:16px;padding:0 6px;}
+  .pc-ex-code{font-family:'Fira Code',monospace;font-size:13px;line-height:1.6;overflow-x:auto;}
+
+  .pc-contains{margin-top:14px;}
+  .pc-contains-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1.8px;text-transform:uppercase;margin-bottom:10px;font-weight:700;}
+  .pc-tags{display:flex;flex-wrap:wrap;gap:7px;}
+  .pc-tag{font-size:12px;font-weight:600;padding:6px 14px;border-radius:30px;}
+
+  .pc-usecases{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+  .pc-use{font-size:12px;padding:7px 16px;border-radius:8px;background:rgba(255,255,255,.02);border:1px solid var(--border);color:var(--ts);}
+  .pc-use strong{color:var(--tp);}
+
+  .pc-note{display:flex;gap:10px;align-items:flex-start;padding:14px 18px;border-radius:10px;margin-top:14px;font-size:12.5px;line-height:1.6;}
+  .pc-note strong{color:var(--tp);}
+  .pc-note-icon{font-size:15px;flex-shrink:0;margin-top:1px;}
+
+  /* Card color variants */
+  .p1 .pc-bar{background:var(--c1)}.p1 .pc-flag{background:var(--c1b);border:1px solid var(--c1d);color:var(--c1)}.p1 .pc-head h3{color:var(--c1)}.p1 .pc-example{background:var(--c1b);border:1px solid var(--c1d)}.p1 .pc-ex-label{color:var(--c1);background:var(--bg-card)}.p1 .pc-ex-code{color:var(--c1)}.p1 .pc-contains-label{color:var(--c1)}.p1 .pc-tag{background:var(--c1b);border:1px solid var(--c1d);color:var(--c1)}.p1 .pc-note{background:var(--c1b);border:1px solid var(--c1d);color:var(--ts)}.p1:hover{box-shadow:0 0 35px rgba(102,187,106,.06);}
+
+  .p2 .pc-bar{background:var(--c2)}.p2 .pc-flag{background:var(--c2b);border:1px solid var(--c2d);color:var(--c2)}.p2 .pc-head h3{color:var(--c2)}.p2 .pc-example{background:var(--c2b);border:1px solid var(--c2d)}.p2 .pc-ex-label{color:var(--c2);background:var(--bg-card)}.p2 .pc-ex-code{color:var(--c2)}.p2 .pc-contains-label{color:var(--c2)}.p2 .pc-tag{background:var(--c2b);border:1px solid var(--c2d);color:var(--c2)}.p2 .pc-note{background:var(--c2b);border:1px solid var(--c2d);color:var(--ts)}.p2:hover{box-shadow:0 0 35px rgba(255,112,67,.06);}
+
+  .p3 .pc-bar{background:var(--c3)}.p3 .pc-flag{background:var(--c3b);border:1px solid var(--c3d);color:var(--c3)}.p3 .pc-head h3{color:var(--c3)}.p3 .pc-example{background:var(--c3b);border:1px solid var(--c3d)}.p3 .pc-ex-label{color:var(--c3);background:var(--bg-card)}.p3 .pc-ex-code{color:var(--c3)}.p3 .pc-contains-label{color:var(--c3)}.p3 .pc-tag{background:var(--c3b);border:1px solid var(--c3d);color:var(--c3)}.p3 .pc-note{background:var(--c3b);border:1px solid var(--c3d);color:var(--ts)}.p3:hover{box-shadow:0 0 35px rgba(66,165,245,.06);}
+
+  .p4 .pc-bar{background:var(--c4)}.p4 .pc-flag{background:var(--c4b);border:1px solid var(--c4d);color:var(--c4)}.p4 .pc-head h3{color:var(--c4)}.p4 .pc-example{background:var(--c4b);border:1px solid var(--c4d)}.p4 .pc-ex-label{color:var(--c4);background:var(--bg-card)}.p4 .pc-ex-code{color:var(--c4)}.p4 .pc-contains-label{color:var(--c4)}.p4 .pc-tag{background:var(--c4b);border:1px solid var(--c4d);color:var(--c4)}.p4 .pc-note{background:var(--c4b);border:1px solid var(--c4d);color:var(--ts)}.p4:hover{box-shadow:0 0 35px rgba(255,167,38,.06);}
+
+  .p5 .pc-bar{background:var(--c5)}.p5 .pc-flag{background:var(--c5b);border:1px solid var(--c5d);color:var(--c5)}.p5 .pc-head h3{color:var(--c5)}.p5 .pc-example{background:var(--c5b);border:1px solid var(--c5d)}.p5 .pc-ex-label{color:var(--c5);background:var(--bg-card)}.p5 .pc-ex-code{color:var(--c5)}.p5 .pc-contains-label{color:var(--c5)}.p5 .pc-tag{background:var(--c5b);border:1px solid var(--c5d);color:var(--c5)}.p5 .pc-note{background:var(--c5b);border:1px solid var(--c5d);color:var(--ts)}.p5:hover{box-shadow:0 0 35px rgba(171,71,188,.06);}
+
+  .p6 .pc-bar{background:var(--c6)}.p6 .pc-flag{background:var(--c6b);border:1px solid var(--c6d);color:var(--c6)}.p6 .pc-head h3{color:var(--c6)}.p6 .pc-example{background:var(--c6b);border:1px solid var(--c6d)}.p6 .pc-ex-label{color:var(--c6);background:var(--bg-card)}.p6 .pc-ex-code{color:var(--c6)}.p6 .pc-contains-label{color:var(--c6)}.p6 .pc-tag{background:var(--c6b);border:1px solid var(--c6d);color:var(--c6)}.p6 .pc-note{background:var(--c6b);border:1px solid var(--c6d);color:var(--ts)}.p6:hover{box-shadow:0 0 35px rgba(38,198,218,.06);}
+
+  .footer{text-align:center;margin-top:64px;padding-top:28px;border-top:1px solid var(--border);}
+  .footer p{font-family:'Space Mono',monospace;font-size:12px;color:var(--tm);letter-spacing:1px;}
+  .footer .fa{color:var(--c1);}
+
+  @media(max-width:700px){.cmd-legend{gap:6px;}.pc-head{flex-wrap:wrap;gap:10px;}}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-blob a"></div>
+<div class="bg-blob b"></div>
+<div class="bg-blob c"></div>
+
+<div class="page">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-badge">JMETER CLI COMMANDS · Performance Testing 101</div>
+    <h1>JMeter Non-GUI Mode Command</h1>
+    <p class="hero-sub">
+      The <strong>recommended way</strong> to run actual load tests — Non-GUI mode consumes significantly fewer resources than the graphical interface, enabling higher load generation.
+    </p>
+  </div>
+
+  <!-- ═══ THE COMMAND SHOWCASE ═══ -->
+  <div class="cmd-showcase">
+    <div class="cmd-bar">
+      <div class="cmd-dot" style="background:#FF5F57"></div>
+      <div class="cmd-dot" style="background:#FEBC2E"></div>
+      <div class="cmd-dot" style="background:#28C840"></div>
+      <span class="cmd-bar-title">Terminal</span>
+    </div>
+    <div class="cmd-code">
+      <div class="cmd-line">
+        <span class="prompt">$ </span><span class="exec">./jmeter.sh</span> <span class="flag">-n</span> <span class="flag2">-t</span> <span class="param">&lt;script.jmx&gt;</span> <span class="flag3">-l</span> <span class="param2">&lt;results.csv&gt;</span> <span class="flag">-e</span> <span class="flag2">-o</span> <span class="param">&lt;report-folder&gt;</span>
+      </div>
+    </div>
+    <div class="cmd-legend">
+      <div class="cmd-leg-item"><div class="cmd-leg-dot" style="background:var(--cmd-green)"></div>Executable</div>
+      <div class="cmd-leg-item"><div class="cmd-leg-dot" style="background:var(--cmd-cyan)"></div>-n / -e flags</div>
+      <div class="cmd-leg-item"><div class="cmd-leg-dot" style="background:var(--cmd-pink)"></div>-t / -l flags</div>
+      <div class="cmd-leg-item"><div class="cmd-leg-dot" style="background:var(--cmd-orange)"></div>File paths</div>
+      <div class="cmd-leg-item"><div class="cmd-leg-dot" style="background:var(--cmd-purple)"></div>-o flag</div>
+      <div class="cmd-leg-item"><div class="cmd-leg-dot" style="background:var(--cmd-blue)"></div>Output paths</div>
+    </div>
+    <div class="win-note">
+      <span class="wn-icon">🪟</span>
+      <span>On <strong>Windows</strong>, replace <code style="font-family:'Fira Code',monospace;color:var(--cmd-green);">./jmeter.sh</code> with <code style="font-family:'Fira Code',monospace;color:var(--cmd-green);">jmeter.bat</code></span>
+    </div>
+  </div>
+
+  <!-- ═══ PARAMETER BREAKDOWN ═══ -->
+  <div class="sec-head">
+    <div class="sec-icon" style="background:var(--c1)">🔍</div>
+    <h2>Parameter Breakdown</h2>
+  </div>
+
+  <!-- 1. ./jmeter.sh -->
+  <div class="param-card p1">
+    <div class="pc-bar"></div>
+    <div class="pc-head">
+      <div class="pc-flag">./jmeter.sh</div>
+      <h3>JMeter Executable</h3>
+      <span class="pc-icon">⚡</span>
+    </div>
+    <div class="pc-body">
+      <div class="pc-desc">
+        The <strong>shell script that launches JMeter</strong> on Unix-based systems (Linux/macOS). It starts the JMeter engine — not the GUI.
+      </div>
+      <div class="pc-note" style="background:var(--c1b);border:1px solid var(--c1d);">
+        <span class="pc-note-icon">🪟</span>
+        <div>On Windows, use <strong>jmeter.bat</strong> instead.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. -n -->
+  <div class="param-card p2">
+    <div class="pc-bar"></div>
+    <div class="pc-head">
+      <div class="pc-flag">-n</div>
+      <h3>Non-GUI Mode</h3>
+      <span class="pc-icon">🖥️</span>
+    </div>
+    <div class="pc-body">
+      <div class="pc-desc">
+        Tells JMeter to run the test <strong>without opening the GUI</strong>. This is the most critical flag — GUI mode is only for test design, never for execution.
+      </div>
+      <div class="pc-contains">
+        <div class="pc-contains-label" style="color:var(--c2)">Non-GUI Mode is Mandatory For</div>
+        <div class="pc-tags">
+          <span class="pc-tag" style="background:var(--c2b);border:1px solid var(--c2d);color:var(--c2);">Real Performance Tests</span>
+          <span class="pc-tag" style="background:var(--c2b);border:1px solid var(--c2d);color:var(--c2);">Jenkins Automation</span>
+          <span class="pc-tag" style="background:var(--c2b);border:1px solid var(--c2d);color:var(--c2);">Distributed Testing</span>
+          <span class="pc-tag" style="background:var(--c2b);border:1px solid var(--c2d);color:var(--c2);">High Load Generation</span>
+        </div>
+      </div>
+      <div class="pc-note" style="background:var(--c2b);border:1px solid var(--c2d);margin-top:14px;">
+        <span class="pc-note-icon">⚠️</span>
+        <div><strong>GUI mode consumes significantly more CPU/memory</strong> — running real load tests in GUI will skew your results and limit throughput.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. -t -->
+  <div class="param-card p3">
+    <div class="pc-bar"></div>
+    <div class="pc-head">
+      <div class="pc-flag">-t &lt;path&gt;</div>
+      <h3>Test Plan (.jmx File)</h3>
+      <span class="pc-icon">📋</span>
+    </div>
+    <div class="pc-body">
+      <div class="pc-desc">
+        Specifies the location of your <strong>JMeter test script file (.jmx)</strong>. You must provide the <strong>full path</strong> to the file.
+      </div>
+      <div class="pc-example">
+        <div class="pc-ex-label">Example</div>
+        <div class="pc-ex-code">-t /Users/name/JMeter/Scripts/LoadTest.jmx</div>
+      </div>
+      <div class="pc-contains">
+        <div class="pc-contains-label" style="color:var(--c3)">.jmx File Contains</div>
+        <div class="pc-tags">
+          <span class="pc-tag" style="background:var(--c3b);border:1px solid var(--c3d);color:var(--c3);">Thread Groups</span>
+          <span class="pc-tag" style="background:var(--c3b);border:1px solid var(--c3d);color:var(--c3);">Samplers</span>
+          <span class="pc-tag" style="background:var(--c3b);border:1px solid var(--c3d);color:var(--c3);">HTTP Requests</span>
+          <span class="pc-tag" style="background:var(--c3b);border:1px solid var(--c3d);color:var(--c3);">Listeners</span>
+          <span class="pc-tag" style="background:var(--c3b);border:1px solid var(--c3d);color:var(--c3);">Logic Controllers</span>
+          <span class="pc-tag" style="background:var(--c3b);border:1px solid var(--c3d);color:var(--c3);">Test Data Refs</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. -l -->
+  <div class="param-card p4">
+    <div class="pc-bar"></div>
+    <div class="pc-head">
+      <div class="pc-flag">-l &lt;path&gt;</div>
+      <h3>Results Log File (.csv / .jtl)</h3>
+      <span class="pc-icon">📊</span>
+    </div>
+    <div class="pc-body">
+      <div class="pc-desc">
+        Defines the path to save <strong>raw test results</strong>, usually in CSV format. This file contains the detailed data for <strong>every request</strong> made during the test.
+      </div>
+      <div class="pc-example">
+        <div class="pc-ex-label">Example</div>
+        <div class="pc-ex-code">-l /Users/name/JMeter/Results/Run1.csv</div>
+      </div>
+      <div class="pc-contains">
+        <div class="pc-contains-label" style="color:var(--c4)">CSV Contains</div>
+        <div class="pc-tags">
+          <span class="pc-tag" style="background:var(--c4b);border:1px solid var(--c4d);color:var(--c4);">Response Time</span>
+          <span class="pc-tag" style="background:var(--c4b);border:1px solid var(--c4d);color:var(--c4);">Success/Failure</span>
+          <span class="pc-tag" style="background:var(--c4b);border:1px solid var(--c4d);color:var(--c4);">Latency</span>
+          <span class="pc-tag" style="background:var(--c4b);border:1px solid var(--c4d);color:var(--c4);">Bytes Sent/Received</span>
+          <span class="pc-tag" style="background:var(--c4b);border:1px solid var(--c4d);color:var(--c4);">Start/End Time</span>
+          <span class="pc-tag" style="background:var(--c4b);border:1px solid var(--c4d);color:var(--c4);">Response Codes</span>
+        </div>
+      </div>
+      <div class="pc-contains" style="margin-top:14px;">
+        <div class="pc-contains-label" style="color:var(--c4)">Essential For</div>
+        <div class="pc-usecases">
+          <div class="pc-use">📈 <strong>Trend Analysis</strong></div>
+          <div class="pc-use">📡 <strong>Grafana/InfluxDB</strong> Correlation</div>
+          <div class="pc-use">🔍 <strong>Debugging</strong> Failed Samples</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. -e -->
+  <div class="param-card p5">
+    <div class="pc-bar"></div>
+    <div class="pc-head">
+      <div class="pc-flag">-e</div>
+      <h3>Generate HTML Report</h3>
+      <span class="pc-icon">📈</span>
+    </div>
+    <div class="pc-body">
+      <div class="pc-desc">
+        Instructs JMeter to automatically generate a <strong>dashboard-style HTML report</strong> immediately after the test completes. JMeter analyzes the CSV file (<code style="font-family:'Fira Code',monospace;color:var(--c5);">-l</code>) and produces graphs and statistics.
+      </div>
+      <div class="pc-note" style="background:var(--c5b);border:1px solid var(--c5d);">
+        <span class="pc-note-icon">💡</span>
+        <div>Works in combination with <strong>-o</strong> flag — <code style="font-family:'Fira Code',monospace;">-e</code> triggers report generation, <code style="font-family:'Fira Code',monospace;">-o</code> specifies where to save it.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. -o -->
+  <div class="param-card p6">
+    <div class="pc-bar"></div>
+    <div class="pc-head">
+      <div class="pc-flag">-o &lt;path&gt;</div>
+      <h3>HTML Report Output Folder</h3>
+      <span class="pc-icon">📁</span>
+    </div>
+    <div class="pc-body">
+      <div class="pc-desc">
+        Specifies the directory where the <strong>HTML dashboard report</strong> will be created. Contains interactive charts, response time graphs, throughput curves, and error analysis.
+      </div>
+      <div class="pc-example">
+        <div class="pc-ex-label">Example</div>
+        <div class="pc-ex-code">-o /Users/name/JMeter/Reports/Run1_Dashboard</div>
+      </div>
+      <div class="pc-note" style="background:rgba(239,83,80,.08);border:1px solid rgba(239,83,80,.2);">
+        <span class="pc-note-icon">🚨</span>
+        <div style="color:var(--ts);">The folder must be <strong style="color:#EF5350;">empty or not exist</strong> before running — otherwise the command will fail.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ FULL COMMAND EXAMPLE ═══ -->
+  <div class="cmd-showcase" style="margin-top:40px;">
+    <div class="cmd-bar">
+      <div class="cmd-dot" style="background:#FF5F57"></div>
+      <div class="cmd-dot" style="background:#FEBC2E"></div>
+      <div class="cmd-dot" style="background:#28C840"></div>
+      <span class="cmd-bar-title">Full Working Example</span>
+    </div>
+    <div class="cmd-code">
+      <div class="cmd-line" style="font-size:clamp(11px,1.5vw,14px);">
+        <span class="prompt">$ </span><span class="exec">./jmeter.sh</span> <span class="flag">-n</span> <span class="flag2">-t</span> <span class="param">/Users/name/JMeter/Scripts/LoadTest.jmx</span> \<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="flag3">-l</span> <span class="param2">/Users/name/JMeter/Results/Run1.csv</span> \<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="flag">-e</span> <span class="flag2">-o</span> <span class="param">/Users/name/JMeter/Reports/Run1_Dashboard</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <p><span class="fa">JMETER CLI</span> &middot; Design in GUI &middot; Execute in Non-GUI &middot; Analyze the Report &middot; Author: Angshuman Basak</p>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JMeter HTML Report Analysis</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Space+Mono:wght@400;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#080B13;--bg-card:#101524;--bg-alt:#161C30;--bg-code:#0A0D18;
+    --dash:#42A5F5;--over:#FFA726;--thru:#66BB6A;--resp:#AB47BC;--err:#EF5350;
+    --dashB:rgba(66,165,245,.06);--dashD:rgba(66,165,245,.18);
+    --overB:rgba(255,167,38,.06);--overD:rgba(255,167,38,.18);
+    --thruB:rgba(102,187,106,.06);--thruD:rgba(102,187,106,.18);
+    --respB:rgba(171,71,188,.06);--respD:rgba(171,71,188,.18);
+    --errB:rgba(239,83,80,.06);--errD:rgba(239,83,80,.18);
+    --cyan:#26C6DA;--gold:#FFD54F;--pink:#EC407A;--lime:#B2FF59;
+    --tp:#E8EAF6;--ts:#8E93AD;--tm:#555A72;--border:rgba(255,255,255,.055);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--tp);font-family:'Sora',sans-serif;line-height:1.6;overflow-x:hidden;}
+  .page{max-width:1100px;margin:0 auto;padding:60px 32px 80px;position:relative;z-index:1;}
+  .bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.013) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.013) 1px,transparent 1px);background-size:56px 56px;pointer-events:none;z-index:0;}
+  .bg-blob{position:fixed;border-radius:50%;filter:blur(140px);pointer-events:none;z-index:0;}
+  .bg-blob.a{width:480px;height:480px;background:rgba(66,165,245,.04);top:-80px;left:-100px;}
+  .bg-blob.b{width:380px;height:380px;background:rgba(171,71,188,.03);bottom:400px;right:-80px;}
+  .bg-blob.c{width:320px;height:320px;background:rgba(102,187,106,.025);bottom:-30px;left:25%;}
+
+  .hero{text-align:center;margin-bottom:48px;}
+  .hero-badge{display:inline-block;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--dash);border:1px solid var(--dashD);padding:6px 20px;border-radius:40px;background:var(--dashB);margin-bottom:24px;}
+  .hero h1{font-size:clamp(26px,4.5vw,48px);font-weight:800;letter-spacing:-1.5px;line-height:1.15;margin-bottom:14px;background:linear-gradient(135deg,#fff 0%,var(--dash) 30%,var(--thru) 55%,var(--resp) 80%,var(--err) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .hero-sub{font-size:15px;color:var(--ts);max-width:760px;margin:0 auto 18px;line-height:1.75;}
+  .hero-sub strong{color:var(--tp);}
+  .hero-cmd{font-family:'Fira Code',monospace;font-size:13px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px 22px;display:inline-block;color:var(--thru);max-width:100%;overflow-x:auto;}
+
+  /* Section nav pills */
+  .nav-pills{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:32px 0 44px;}
+  .nav-pill{font-size:11.5px;font-weight:700;padding:7px 16px;border-radius:30px;display:flex;align-items:center;gap:6px;}
+  .np-num{font-family:'Space Mono',monospace;font-size:9px;width:18px;height:18px;border-radius:5px;display:flex;align-items:center;justify-content:center;color:var(--bg);}
+
+  /* SECTION HEADER */
+  .sec-head{display:flex;align-items:center;gap:14px;margin:52px 0 22px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+  .sec-num{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--bg);}
+  .sec-head h2{font-size:24px;font-weight:800;flex:1;letter-spacing:-.5px;}
+
+  /* SUBSECTION CARD */
+  .sub{background:var(--bg-card);border:1px solid var(--border);border-radius:18px;overflow:hidden;margin-bottom:16px;transition:transform .2s;}
+  .sub:hover{transform:translateY(-2px);}
+  .sub-bar{height:3px;}
+  .sub-head{display:flex;align-items:center;gap:10px;padding:18px 22px 14px;border-bottom:1px solid var(--border);}
+  .sub-letter{font-family:'Space Mono',monospace;font-size:12px;font-weight:700;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--bg);}
+  .sub-head h3{font-size:15px;font-weight:700;flex:1;}
+  .sub-head .sub-icon{font-size:18px;}
+  .sub-body{padding:16px 22px 20px;}
+
+  .sd{font-size:13.5px;color:var(--ts);line-height:1.7;margin-bottom:12px;}
+  .sd strong{color:var(--tp);font-weight:600;}
+
+  /* Formula */
+  .sf{font-family:'Fira Code',monospace;font-size:12.5px;padding:10px 16px;border-radius:8px;margin-bottom:10px;overflow-x:auto;line-height:1.6;}
+
+  /* Mini table */
+  .st{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+  .st th{background:rgba(255,255,255,.03);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);}
+  .st td{padding:6px 12px;border-bottom:1px solid var(--border);color:var(--ts);vertical-align:top;}
+  .st tr:last-child td{border-bottom:none;}
+  .st td:first-child{font-weight:600;color:var(--tp);white-space:nowrap;}
+
+  /* Tags */
+  .stags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;}
+  .stag{font-size:11px;font-weight:600;padding:4px 12px;border-radius:24px;}
+
+  /* Pattern boxes */
+  .patterns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  @media(max-width:640px){.patterns{grid-template-columns:1fr;}}
+  .pat{padding:12px 14px;border-radius:10px;font-size:12.5px;display:flex;align-items:center;gap:8px;}
+  .pat-icon{font-size:16px;flex-shrink:0;}
+  .pat strong{color:var(--tp);}
+  .pat-good{background:rgba(102,187,106,.06);border:1px solid rgba(102,187,106,.18);color:rgba(102,187,106,.85);}
+  .pat-bad{background:rgba(239,83,80,.06);border:1px solid rgba(239,83,80,.18);color:rgba(239,83,80,.85);}
+
+  /* Note */
+  .sn{font-size:12px;padding:10px 14px;border-radius:8px;background:rgba(255,255,255,.015);border:1px solid var(--border);color:var(--ts);line-height:1.6;margin-top:6px;}
+  .sn strong{color:var(--tp);}
+
+  /* Score gauge */
+  .score-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;}
+  .score{font-family:'Fira Code',monospace;font-size:11px;font-weight:600;padding:4px 11px;border-radius:6px;}
+  .sc-exc{background:rgba(102,187,106,.1);border:1px solid rgba(102,187,106,.2);color:#66BB6A;}
+  .sc-good{background:rgba(79,195,247,.1);border:1px solid rgba(79,195,247,.2);color:#4FC3F7;}
+  .sc-ok{background:rgba(255,213,79,.08);border:1px solid rgba(255,213,79,.16);color:#FFD54F;}
+  .sc-poor{background:rgba(239,83,80,.1);border:1px solid rgba(239,83,80,.2);color:#EF5350;}
+
+  /* Color variants via parent */
+  .c-dash .sub-bar{background:var(--dash)}.c-dash .sub-letter{background:var(--dash)}.c-dash .sub-head h3{color:var(--dash)}.c-dash .sf{background:var(--dashB);border:1px solid var(--dashD);color:var(--dash)}.c-dash .st th{color:var(--dash)}.c-dash .stag{background:var(--dashB);border:1px solid var(--dashD);color:var(--dash)}.c-dash:hover{box-shadow:0 0 25px rgba(66,165,245,.05);}
+
+  .c-over .sub-bar{background:var(--over)}.c-over .sub-letter{background:var(--over)}.c-over .sub-head h3{color:var(--over)}.c-over .sf{background:var(--overB);border:1px solid var(--overD);color:var(--over)}.c-over .st th{color:var(--over)}.c-over .stag{background:var(--overB);border:1px solid var(--overD);color:var(--over)}.c-over:hover{box-shadow:0 0 25px rgba(255,167,38,.05);}
+
+  .c-thru .sub-bar{background:var(--thru)}.c-thru .sub-letter{background:var(--thru)}.c-thru .sub-head h3{color:var(--thru)}.c-thru .sf{background:var(--thruB);border:1px solid var(--thruD);color:var(--thru)}.c-thru .st th{color:var(--thru)}.c-thru .stag{background:var(--thruB);border:1px solid var(--thruD);color:var(--thru)}.c-thru:hover{box-shadow:0 0 25px rgba(102,187,106,.05);}
+
+  .c-resp .sub-bar{background:var(--resp)}.c-resp .sub-letter{background:var(--resp)}.c-resp .sub-head h3{color:var(--resp)}.c-resp .sf{background:var(--respB);border:1px solid var(--respD);color:var(--resp)}.c-resp .st th{color:var(--resp)}.c-resp .stag{background:var(--respB);border:1px solid var(--respD);color:var(--resp)}.c-resp:hover{box-shadow:0 0 25px rgba(171,71,188,.05);}
+
+  .c-err .sub-bar{background:var(--err)}.c-err .sub-letter{background:var(--err)}.c-err .sub-head h3{color:var(--err)}.c-err .sf{background:var(--errB);border:1px solid var(--errD);color:var(--err)}.c-err .st th{color:var(--err)}.c-err .stag{background:var(--errB);border:1px solid var(--errD);color:var(--err)}.c-err:hover{box-shadow:0 0 25px rgba(239,83,80,.05);}
+
+  /* E2E EXAMPLE */
+  .e2e{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;overflow:hidden;margin-top:40px;position:relative;}
+  .e2e::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--dash),var(--over),var(--thru),var(--resp),var(--err));}
+  .e2e-head{padding:22px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+  .e2e-head h3{font-size:18px;font-weight:700;}
+  .e2e-body{padding:20px 24px 24px;}
+  .e2e-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;}
+  .e2e-m{padding:14px;border-radius:10px;text-align:center;}
+  .e2e-v{font-family:'Fira Code',monospace;font-size:17px;font-weight:700;display:block;margin-bottom:2px;}
+  .e2e-l{font-size:9.5px;font-family:'Space Mono',monospace;letter-spacing:.8px;text-transform:uppercase;}
+  .em1{background:var(--dashB);border:1px solid var(--dashD);}.em1 .e2e-v{color:var(--dash);}.em1 .e2e-l{color:var(--dash);}
+  .em2{background:var(--respB);border:1px solid var(--respD);}.em2 .e2e-v{color:var(--resp);}.em2 .e2e-l{color:var(--resp);}
+  .em3{background:var(--errB);border:1px solid var(--errD);}.em3 .e2e-v{color:var(--err);}.em3 .e2e-l{color:var(--err);}
+  .em4{background:var(--thruB);border:1px solid var(--thruD);}.em4 .e2e-v{color:var(--thru);}.em4 .e2e-l{color:var(--thru);}
+  .em5{background:var(--overB);border:1px solid var(--overD);}.em5 .e2e-v{color:var(--over);}.em5 .e2e-l{color:var(--over);}
+  .em6{background:rgba(38,198,218,.06);border:1px solid rgba(38,198,218,.18);}.em6 .e2e-v{color:var(--cyan);}.em6 .e2e-l{color:var(--cyan);}
+  .e2e-root{font-family:'Fira Code',monospace;font-size:13px;padding:14px 20px;border-radius:10px;background:var(--errB);border:1px solid var(--errD);color:var(--err);text-align:center;}
+
+  /* SUMMARY */
+  .sum-head{display:flex;align-items:center;gap:14px;margin:48px 0 20px;}
+  .sum-head h2{font-size:24px;font-weight:700;}
+  .sh-icon{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--bg);background:var(--dash);width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;}
+  .sum-wrap{border-radius:16px;overflow:hidden;border:1px solid var(--border);}
+  table.sum{width:100%;border-collapse:collapse;font-size:13px;}
+  .sum thead th{background:var(--bg-alt);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dash);padding:14px 16px;text-align:left;border-bottom:1px solid var(--border);}
+  .sum tbody tr{background:var(--bg-card);}.sum tbody tr:nth-child(even){background:var(--bg-alt);}
+  .sum tbody td{padding:12px 16px;border-bottom:1px solid var(--border);color:var(--ts);line-height:1.5;vertical-align:middle;}
+  .sum tbody tr:last-child td{border-bottom:none;}
+  .sum tbody td:first-child{font-weight:700;color:var(--tp);white-space:nowrap;}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle;}
+
+  .footer{text-align:center;margin-top:64px;padding-top:28px;border-top:1px solid var(--border);}
+  .footer p{font-family:'Space Mono',monospace;font-size:12px;color:var(--tm);letter-spacing:1px;}
+  .footer .fa{color:var(--dash);}
+
+  @media(max-width:700px){.sub-head{flex-wrap:wrap;gap:8px;}.e2e-grid{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-blob a"></div>
+<div class="bg-blob b"></div>
+<div class="bg-blob c"></div>
+
+<div class="page">
+
+  <div class="hero">
+    <div class="hero-badge">Report Analysis · Apache JMeter</div>
+    <h1>Analyzing JMeter HTML Reports</h1>
+    <p class="hero-sub">After test execution, JMeter generates an <strong>HTML Dashboard Report</strong> containing charts, tables, and KPIs to analyze system behavior, response trends, throughput patterns, and SLA compliance.</p>
+    <div class="hero-cmd">$ jmeter -n -t test.jmx -l results.csv -e -o report-folder</div>
+  </div>
+
+  <!-- NAV PILLS -->
+  <div class="nav-pills">
+    <div class="nav-pill" style="background:var(--dashB);border:1px solid var(--dashD);color:var(--dash);"><span class="np-num" style="background:var(--dash)">1</span> Dashboard</div>
+    <div class="nav-pill" style="background:var(--overB);border:1px solid var(--overD);color:var(--over);"><span class="np-num" style="background:var(--over)">2</span> Over Time</div>
+    <div class="nav-pill" style="background:var(--thruB);border:1px solid var(--thruD);color:var(--thru);"><span class="np-num" style="background:var(--thru)">3</span> Throughput</div>
+    <div class="nav-pill" style="background:var(--respB);border:1px solid var(--respD);color:var(--resp);"><span class="np-num" style="background:var(--resp)">4</span> Response Time</div>
+  </div>
+
+  <!-- ════════════════ 1. DASHBOARD ════════════════ -->
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--dash)">01</div>
+    <h2 style="color:var(--dash)">Dashboard (High-Level KPIs)</h2>
+  </div>
+
+  <!-- APDEX -->
+  <div class="sub c-dash">
+    <div class="sub-bar"></div>
+    <div class="sub-head"><div class="sub-letter">A</div><h3>APDEX (Application Performance Index)</h3><span class="sub-icon">🎯</span></div>
+    <div class="sub-body">
+      <div class="sd">Measures <strong>user satisfaction</strong> based on response time. Converts technical data into Satisfied / Tolerating / Frustrated users.</div>
+      <div class="sf">APDEX = (Satisfied + Tolerated/2) / Total Samples</div>
+      <table class="st"><thead><tr><th>Category</th><th>Condition (T = Target RT)</th></tr></thead><tbody>
+        <tr><td>😊 Satisfied</td><td>Response Time ≤ T</td></tr>
+        <tr><td>😐 Tolerated</td><td>T &lt; RT ≤ 4T</td></tr>
+        <tr><td>😤 Frustrated</td><td>RT &gt; 4T or Failed</td></tr>
+      </tbody></table>
+      <div class="score-row">
+        <span class="score sc-exc">1.0 Excellent</span>
+        <span class="score sc-good">0.94+ Very Good</span>
+        <span class="score sc-ok">0.85 Acceptable</span>
+        <span class="score sc-poor">&lt;0.7 Poor</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Request Summary -->
+  <div class="sub c-dash">
+    <div class="sub-bar"></div>
+    <div class="sub-head"><div class="sub-letter">B</div><h3>Request Summary (Success vs Failure)</h3><span class="sub-icon">📊</span></div>
+    <div class="sub-body">
+      <div class="sd">Pie chart showing <strong>total, successful, and failed requests</strong>. High failures indicate server crash, timeout, resource exhaustion, or network issues.</div>
+      <div class="sn"><strong>Example:</strong> 9,800 Success · 200 Failed → Error Rate = 2%</div>
+    </div>
+  </div>
+
+  <!-- Statistics Table -->
+  <div class="sub c-dash">
+    <div class="sub-bar"></div>
+    <div class="sub-head"><div class="sub-letter">C</div><h3>Statistics Table</h3><span class="sub-icon">📋</span></div>
+    <div class="sub-body">
+      <div class="sd">One of the <strong>most important sections</strong> — detailed metrics for each request/sampler.</div>
+      <table class="st"><thead><tr><th>Column</th><th>Meaning</th></tr></thead><tbody>
+        <tr><td># Samples</td><td>Number of executions</td></tr>
+        <tr><td>Average / Median</td><td>Mean / middle response time</td></tr>
+        <tr><td>Min / Max</td><td>Fastest / slowest request</td></tr>
+        <tr><td>Std. Dev</td><td>Response time variation</td></tr>
+        <tr><td>Error %</td><td>Failure percentage</td></tr>
+        <tr><td>Throughput</td><td>Requests/sec per sampler</td></tr>
+        <tr><td>KB/sec</td><td>Data transfer rate</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+
+  <!-- Percentiles -->
+  <div class="sub c-dash">
+    <div class="sub-bar"></div>
+    <div class="sub-head"><div class="sub-letter">D</div><h3>Percentiles (90th, 95th, 99th)</h3><span class="sub-icon">📈</span></div>
+    <div class="sub-body">
+      <div class="sd">Shows <strong>how slow the slowest users are</strong>. Industry-standard over averages because averages hide outliers.</div>
+      <div class="sn"><strong>Example:</strong> 95 users at 1s + 5 users at 20s → Average = 1.95s (looks fine!) but 5 users had terrible experience. <strong>Percentiles reveal this.</strong></div>
+    </div>
+  </div>
+
+  <!-- Error Table -->
+  <div class="sub c-err">
+    <div class="sub-bar"></div>
+    <div class="sub-head"><div class="sub-letter">E</div><h3>Error Table & Top 5 Errors</h3><span class="sub-icon">⚠️</span></div>
+    <div class="sub-body">
+      <div class="sd">Lists failed requests, HTTP error codes, assertion failures, and identifies <strong>most problematic endpoints</strong>.</div>
+      <table class="st"><thead><tr><th>Code</th><th>Meaning</th></tr></thead><tbody>
+        <tr><td>400</td><td>Bad Request</td></tr>
+        <tr><td>401</td><td>Unauthorized</td></tr>
+        <tr><td>500</td><td>Internal Server Error</td></tr>
+        <tr><td>502</td><td>Bad Gateway</td></tr>
+        <tr><td>503</td><td>Service Unavailable</td></tr>
+        <tr><td>504</td><td>Gateway Timeout</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+
+  <!-- ════════════════ 2. OVER TIME ════════════════ -->
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--over)">02</div>
+    <h2 style="color:var(--over)">Over Time Charts</h2>
+  </div>
+
+  <div class="sub c-over">
+    <div class="sub-bar"></div>
+    <div class="sub-head"><div class="sub-letter">A</div><h3>Response Times Over Time</h3><span class="sub-icon">📉</span></div>
+    <div class="sub-body">
+      <div class="sd">Displays <strong>response time vs time</strong> throughout the test. Identifies performance degradation, memory leaks, and resource saturation.</div>
+      <div class="patterns">
+        <div class="pat pat-good"><span class="pat-icon">✅</span><strong>Healthy:</strong>&nbsp;Flat stable line</div>
+        <div class="pat pat-bad"><span class="pat-icon">❌</span><strong>Bad:</strong>&nbsp;Gradually increasing RT</div>
+      </div>
+      <div class="sn"><strong>Example:</strong> 0min→1s · 20min→2s · 40min→5s → Performance degradation (memory leak / DB issue / thread exhaustion)</div>
+    </div>
+  </div>
+
+  <div class="sub c-over">
+    <div class="sub-bar"></div>
+    <div class="sub-head"><div class="sub-letter">B</div><h3>Percentiles Over Time</h3><span class="sub-icon">📊</span></div>
+    <div class="sub-body">
+      <div class="sd">Tracks <strong>P90, P95, P99</strong> during execution. If 95th percentile rises from 2s→8s, system is <strong>unstable under sustained load</strong>.</div>
+    </div>
+  </div>
+
+  <div class="sub c-over">
+    <div class="sub-bar"></div>
+    <div class="sub-head"><div class="sub-letter">C</div><h3>Active Threads Over Time</h3><span class="sub-icon">👥</span></div>
+    <div class="sub-body">
+      <div class="sd">Verifies <strong>correct ramp-up and user distribution</strong>. If expected 1000 users but actual is 700 → thread crashes or tool limitation.</div>
+    </div>
+  </div>
+
+  <div class="sub c-over">
+    <div class="sub-bar"></div>
+    <div class="sub-head"><div class="sub-letter">D</div><h3>Bytes Throughput Over Time</h3><span class="sub-icon">📡</span></div>
+    <div class="sub-body">
+      <div class="sd">Shows <strong>incoming/outgoing traffic volume</strong>. Identifies network bottlenecks, large payloads, and traffic spikes.</div>
+    </div>
+  </div>
+
+  <div class="sub c-over">
+    <div class="sub-bar"></div>
+    <div class="sub-head"><div class="sub-letter">E</div><h3>Latency / Connect Time Over Time</h3><span class="sub-icon">🌐</span></div>
+    <div class="sub-body">
+      <div class="sd"><strong>Latency</strong> = time to first byte. <strong>Connect Time</strong> = time to establish connection. High connect time → network, DNS, SSL, or LB issue.</div>
+    </div>
+  </div>
+
+  <!-- ════════════════ 3. THROUGHPUT ════════════════ -->
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--thru)">03</div>
+    <h2 style="color:var(--thru)">Throughput Charts</h2>
+  </div>
+
+  <div class="sub c-thru">
+    <div class="sub-bar"></div>
+    <div class="sub-head"><div class="sub-letter">A</div><h3>Hits Per Second</h3><span class="sub-icon">🎯</span></div>
+    <div class="sub-body">
+      <div class="sd">Number of <strong>requests sent per second</strong>. Shows load intensity and traffic generation rate.</div>
+      <div class="sn"><strong>Example:</strong> 200 hits/sec = 200 requests reaching the server every second.</div>
+    </div>
+  </div>
+
+  <div class="sub c-thru">
+    <div class="sub-bar"></div>
+    <div class="sub-head"><div class="sub-letter">B</div><h3>Codes Per Second</h3><span class="sub-icon">🔢</span></div>
+    <div class="sub-body">
+      <div class="sd">Shows <strong>HTTP response codes per second</strong>. Helps detect failure spikes (e.g., 200s at 150/sec but 500s jumping to 20/sec).</div>
+    </div>
+  </div>
+
+  <div class="sub c-thru">
+    <div class="sub-bar"></div>
+    <div class="sub-head"><div class="sub-letter">C</div><h3>Transactions Per Second (TPS)</h3><span class="sub-icon">💎</span></div>
+    <div class="sub-body">
+      <div class="sd">Measures <strong>completed business transactions/sec</strong> — not individual requests. A critical business metric.</div>
+      <div class="sn"><strong>Example:</strong> Login + Search + Checkout = 1 transaction. If 50 complete flows/sec → TPS = 50.</div>
+    </div>
+  </div>
+
+  <!-- ════════════════ 4. RESPONSE TIME ════════════════ -->
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--resp)">04</div>
+    <h2 style="color:var(--resp)">Response Time Charts</h2>
+  </div>
+
+  <div class="sub c-resp">
+    <div class="sub-bar"></div>
+    <div class="sub-head"><div class="sub-letter">A</div><h3>Response Time Percentiles Chart</h3><span class="sub-icon">📈</span></div>
+    <div class="sub-body">
+      <div class="sd">Displays <strong>percentile distribution 0–100%</strong>.</div>
+      <div class="patterns">
+        <div class="pat pat-good"><span class="pat-icon">✅</span><strong>Good:</strong>&nbsp;Smooth flat curve</div>
+        <div class="pat pat-bad"><span class="pat-icon">❌</span><strong>Bad:</strong>&nbsp;Sharp rise at 95–100%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sub c-resp">
+    <div class="sub-bar"></div>
+    <div class="sub-head"><div class="sub-letter">B</div><h3>Response Time Distribution</h3><span class="sub-icon">📊</span></div>
+    <div class="sub-body">
+      <div class="sd">Shows <strong>how many requests fall into RT buckets</strong>. Identifies response consistency and slow outliers.</div>
+      <div class="sn"><strong>Example:</strong> 0–1s: 8,000 · 1–3s: 1,500 · &gt;5s: 500 → 500 requests are outliers needing investigation.</div>
+    </div>
+  </div>
+
+  <div class="sub c-resp">
+    <div class="sub-bar"></div>
+    <div class="sub-head"><div class="sub-letter">C</div><h3>Response Time vs Request ⭐ Most Important</h3><span class="sub-icon">🔥</span></div>
+    <div class="sub-body">
+      <div class="sd">Plots <strong>concurrent requests vs response time</strong> — identifies the <strong>saturation point</strong> where the system breaks down.</div>
+      <table class="st"><thead><tr><th>Users</th><th>Response Time</th></tr></thead><tbody>
+        <tr><td>100</td><td>1 sec ✅</td></tr>
+        <tr><td>500</td><td>2 sec ⚠️</td></tr>
+        <tr><td>1000</td><td>15 sec ❌</td></tr>
+      </tbody></table>
+      <div class="sn"><strong>Determines:</strong> Maximum supported load, scalability limit, and break-point.</div>
+    </div>
+  </div>
+
+  <div class="sub c-resp">
+    <div class="sub-bar"></div>
+    <div class="sub-head"><div class="sub-letter">D</div><h3>Time vs Threads</h3><span class="sub-icon">🧵</span></div>
+    <div class="sub-body">
+      <div class="sd">Displays <strong>response time vs active users</strong>. Analyzes scalability, resource exhaustion, and user-load impact.</div>
+    </div>
+  </div>
+
+  <!-- ═══ REAL-WORLD EXAMPLE ═══ -->
+  <div class="e2e">
+    <div class="e2e-head"><span style="font-size:22px;">🔍</span><h3>Real-World Report Analysis</h3></div>
+    <div class="e2e-body">
+      <div class="e2e-grid">
+        <div class="e2e-m em1"><span class="e2e-v">2 sec</span><span class="e2e-l">Avg Response</span></div>
+        <div class="e2e-m em2"><span class="e2e-v">9 sec</span><span class="e2e-l">P95</span></div>
+        <div class="e2e-m em3"><span class="e2e-v">12%</span><span class="e2e-l">Error Rate</span></div>
+        <div class="e2e-m em4"><span class="e2e-v">Dropping</span><span class="e2e-l">Throughput</span></div>
+        <div class="e2e-m em5"><span class="e2e-v">95%</span><span class="e2e-l">CPU</span></div>
+        <div class="e2e-m em6"><span class="e2e-v">Stable</span><span class="e2e-l">Threads</span></div>
+      </div>
+      <div class="e2e-root">⚡ System Saturation — RT increasing while throughput decreases → CPU bottleneck + slow queries</div>
+    </div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="sum-head"><div class="sh-icon">∑</div><h2>Report Analysis Summary</h2></div>
+  <div class="sum-wrap">
+    <table class="sum">
+      <thead><tr><th>Section</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><span class="dot" style="background:var(--dash)"></span>Dashboard</td><td>Overall health, APDEX, statistics, percentiles, errors</td></tr>
+        <tr><td><span class="dot" style="background:var(--over)"></span>Over Time Charts</td><td>Performance degradation, thread count, latency trends</td></tr>
+        <tr><td><span class="dot" style="background:var(--thru)"></span>Throughput Charts</td><td>Hits/sec, codes/sec, TPS — processing capacity</td></tr>
+        <tr><td><span class="dot" style="background:var(--resp)"></span>Response Time Charts</td><td>Distribution, saturation point, scalability limits</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    <p><span class="fa">JMETER REPORTS</span> &middot; Dashboard → Over Time → Throughput → Response Time → Root Cause &middot; Author: Angshuman Basak</p>
+  </div>
+
+</div>
+</body>
+</html>

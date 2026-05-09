@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JMeter Scripting Steps</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Space+Mono:wght@400;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#080B13;--bg-card:#101524;--bg-alt:#161C30;--bg-code:#0A0D18;
+    --c1:#42A5F5;--c2:#66BB6A;--c3:#FFA726;--c4:#AB47BC;--c5:#26C6DA;--c6:#EF5350;
+    --c1b:rgba(66,165,245,.06);--c1d:rgba(66,165,245,.18);
+    --c2b:rgba(102,187,106,.06);--c2d:rgba(102,187,106,.18);
+    --c3b:rgba(255,167,38,.06);--c3d:rgba(255,167,38,.18);
+    --c4b:rgba(171,71,188,.06);--c4d:rgba(171,71,188,.18);
+    --c5b:rgba(38,198,218,.06);--c5d:rgba(38,198,218,.18);
+    --c6b:rgba(239,83,80,.06);--c6d:rgba(239,83,80,.18);
+    --tp:#E8EAF6;--ts:#8E93AD;--tm:#555A72;--border:rgba(255,255,255,.055);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--tp);font-family:'Sora',sans-serif;line-height:1.6;overflow-x:hidden;}
+  .page{max-width:1100px;margin:0 auto;padding:60px 32px 80px;position:relative;z-index:1;}
+  .bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.013) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.013) 1px,transparent 1px);background-size:56px 56px;pointer-events:none;z-index:0;}
+  .bg-blob{position:fixed;border-radius:50%;filter:blur(140px);pointer-events:none;z-index:0;}
+  .bg-blob.a{width:480px;height:480px;background:rgba(66,165,245,.04);top:-80px;left:-100px;}
+  .bg-blob.b{width:380px;height:380px;background:rgba(171,71,188,.03);bottom:400px;right:-80px;}
+  .bg-blob.c{width:320px;height:320px;background:rgba(102,187,106,.025);bottom:-30px;left:25%;}
+
+  .hero{text-align:center;margin-bottom:48px;}
+  .hero-badge{display:inline-block;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--c1);border:1px solid var(--c1d);padding:6px 20px;border-radius:40px;background:var(--c1b);margin-bottom:24px;}
+  .hero h1{font-size:clamp(26px,4.5vw,48px);font-weight:800;letter-spacing:-1.5px;line-height:1.15;margin-bottom:14px;background:linear-gradient(135deg,#fff 0%,var(--c1) 25%,var(--c2) 45%,var(--c3) 60%,var(--c4) 75%,var(--c6) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .hero-sub{font-size:15px;color:var(--ts);max-width:760px;margin:0 auto;line-height:1.75;}
+  .hero-sub strong{color:var(--tp);}
+  .hero-goals{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:20px;}
+  .hg{font-size:11.5px;font-weight:700;padding:6px 14px;border-radius:30px;}
+
+  /* E2E FLOW */
+  .flow-box{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:24px;margin-bottom:44px;position:relative;overflow:hidden;}
+  .flow-box::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--c1),var(--c2),var(--c3),var(--c4),var(--c5),var(--c6));}
+  .flow-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--c5);margin-bottom:14px;text-align:center;}
+  .flow-chain{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:5px;}
+  .flow-node{font-family:'Space Mono',monospace;font-size:10.5px;font-weight:700;padding:8px 14px;border-radius:8px;white-space:nowrap;text-align:center;}
+  .flow-arrow{color:var(--tm);font-size:14px;flex-shrink:0;}
+  .fn1{background:var(--c1b);border:1px solid var(--c1d);color:var(--c1);}
+  .fn2{background:var(--c2b);border:1px solid var(--c2d);color:var(--c2);}
+  .fn3{background:var(--c3b);border:1px solid var(--c3d);color:var(--c3);}
+  .fn4{background:var(--c4b);border:1px solid var(--c4d);color:var(--c4);}
+  .fn5{background:var(--c5b);border:1px solid var(--c5d);color:var(--c5);}
+  .fn6{background:var(--c6b);border:1px solid var(--c6d);color:var(--c6);}
+
+  /* STEP CARD */
+  .step{display:grid;grid-template-columns:68px 1fr;gap:0;margin-bottom:22px;}
+  .step-rail{display:flex;flex-direction:column;align-items:center;padding-top:26px;}
+  .step-num{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--bg);z-index:2;}
+  .step-line{flex:1;width:2px;margin-top:6px;opacity:.2;}
+
+  .step-card{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;overflow:hidden;transition:transform .25s;}
+  .step-card:hover{transform:translateY(-3px);}
+  .sc-bar{height:3px;}
+  .sc-head{display:flex;align-items:center;gap:12px;padding:22px 24px 16px;border-bottom:1px solid var(--border);}
+  .sc-head h2{font-size:20px;font-weight:700;flex:1;letter-spacing:-.3px;}
+  .sc-head .sc-icon{font-size:24px;}
+  .sc-body{padding:20px 24px 24px;}
+
+  .sc-desc{font-size:14px;color:var(--ts);line-height:1.7;margin-bottom:16px;}
+  .sc-desc strong{color:var(--tp);font-weight:600;}
+
+  /* Sub-section inside step */
+  .ss{border-radius:14px;padding:18px 20px;margin-bottom:14px;border:1px solid var(--border);background:rgba(255,255,255,.01);}
+  .ss:last-child{margin-bottom:0;}
+  .ss-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .ss-head h3{font-size:14px;font-weight:700;}
+  .ss-head .ss-icon{font-size:16px;}
+  .ss-desc{font-size:13px;color:var(--ts);line-height:1.65;margin-bottom:10px;}
+  .ss-desc strong{color:var(--tp);}
+
+  /* Mini table */
+  .mt{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+  .mt th{background:rgba(255,255,255,.03);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);}
+  .mt td{padding:6px 12px;border-bottom:1px solid var(--border);color:var(--ts);vertical-align:top;}
+  .mt tr:last-child td{border-bottom:none;}
+  .mt td:first-child{font-weight:600;color:var(--tp);white-space:nowrap;}
+
+  /* Code block */
+  .cb{font-family:'Fira Code',monospace;font-size:12px;background:var(--bg-code);border:1px solid var(--border);border-radius:8px;padding:10px 16px;margin-bottom:10px;overflow-x:auto;line-height:1.6;}
+
+  /* Tags */
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+  .tag{font-size:11px;font-weight:600;padding:5px 13px;border-radius:24px;}
+
+  /* Note */
+  .note{font-size:12px;padding:10px 14px;border-radius:8px;background:rgba(255,255,255,.015);border:1px solid var(--border);color:var(--ts);line-height:1.6;}
+  .note strong{color:var(--tp);}
+
+  /* Example block */
+  .ex{border-radius:10px;padding:12px 16px;font-size:12.5px;line-height:1.6;color:var(--ts);position:relative;margin-bottom:10px;}
+  .ex::before{content:'EXAMPLE';font-family:'Space Mono',monospace;font-size:8.5px;letter-spacing:1.5px;position:absolute;top:-7px;left:14px;padding:0 5px;}
+  .ex strong{color:var(--tp);}
+
+  /* Two-way grid */
+  .two-way{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+  @media(max-width:640px){.two-way{grid-template-columns:1fr;}}
+
+  /* Colors per step */
+  .s1 .step-num{background:var(--c1)}.s1 .step-line{background:var(--c1)}.s1 .sc-bar{background:var(--c1)}.s1 .sc-head h2{color:var(--c1)}.s1 .ss-head h3{color:var(--c1)}.s1 .mt th{color:var(--c1)}.s1 .tag{background:var(--c1b);border:1px solid var(--c1d);color:var(--c1)}.s1 .ex{background:var(--c1b);border:1px solid var(--c1d)}.s1 .ex::before{color:var(--c1);background:var(--bg-card)}.s1 .cb{color:var(--c1)}.s1:hover .step-card{box-shadow:0 0 30px rgba(66,165,245,.06);}
+
+  .s2 .step-num{background:var(--c2)}.s2 .step-line{background:var(--c2)}.s2 .sc-bar{background:var(--c2)}.s2 .sc-head h2{color:var(--c2)}.s2 .ss-head h3{color:var(--c2)}.s2 .mt th{color:var(--c2)}.s2 .tag{background:var(--c2b);border:1px solid var(--c2d);color:var(--c2)}.s2 .ex{background:var(--c2b);border:1px solid var(--c2d)}.s2 .ex::before{color:var(--c2);background:var(--bg-card)}.s2 .cb{color:var(--c2)}.s2:hover .step-card{box-shadow:0 0 30px rgba(102,187,106,.06);}
+
+  .s3 .step-num{background:var(--c3)}.s3 .step-line{background:var(--c3)}.s3 .sc-bar{background:var(--c3)}.s3 .sc-head h2{color:var(--c3)}.s3 .ss-head h3{color:var(--c3)}.s3 .mt th{color:var(--c3)}.s3 .tag{background:var(--c3b);border:1px solid var(--c3d);color:var(--c3)}.s3 .ex{background:var(--c3b);border:1px solid var(--c3d)}.s3 .ex::before{color:var(--c3);background:var(--bg-card)}.s3 .cb{color:var(--c3)}.s3:hover .step-card{box-shadow:0 0 30px rgba(255,167,38,.06);}
+
+  .s4 .step-num{background:var(--c4)}.s4 .step-line{background:var(--c4)}.s4 .sc-bar{background:var(--c4)}.s4 .sc-head h2{color:var(--c4)}.s4 .ss-head h3{color:var(--c4)}.s4 .mt th{color:var(--c4)}.s4 .tag{background:var(--c4b);border:1px solid var(--c4d);color:var(--c4)}.s4 .ex{background:var(--c4b);border:1px solid var(--c4d)}.s4 .ex::before{color:var(--c4);background:var(--bg-card)}.s4 .cb{color:var(--c4)}.s4:hover .step-card{box-shadow:0 0 30px rgba(171,71,188,.06);}
+
+  .s5 .step-num{background:var(--c5)}.s5 .step-line{background:var(--c5)}.s5 .sc-bar{background:var(--c5)}.s5 .sc-head h2{color:var(--c5)}.s5 .ss-head h3{color:var(--c5)}.s5 .mt th{color:var(--c5)}.s5 .tag{background:var(--c5b);border:1px solid var(--c5d);color:var(--c5)}.s5 .ex{background:var(--c5b);border:1px solid var(--c5d)}.s5 .ex::before{color:var(--c5);background:var(--bg-card)}.s5 .cb{color:var(--c5)}.s5:hover .step-card{box-shadow:0 0 30px rgba(38,198,218,.06);}
+
+  .s6 .step-num{background:var(--c6)}.s6 .step-line{background:var(--c6)}.s6 .sc-bar{background:var(--c6)}.s6 .sc-head h2{color:var(--c6)}.s6 .ss-head h3{color:var(--c6)}.s6 .mt th{color:var(--c6)}.s6 .tag{background:var(--c6b);border:1px solid var(--c6d);color:var(--c6)}.s6 .ex{background:var(--c6b);border:1px solid var(--c6d)}.s6 .ex::before{color:var(--c6);background:var(--bg-card)}.s6 .cb{color:var(--c6)}.s6:hover .step-card{box-shadow:0 0 30px rgba(239,83,80,.06);}
+
+  /* SUMMARY */
+  .sum-head{display:flex;align-items:center;gap:14px;margin:48px 0 20px;}
+  .sum-head h2{font-size:24px;font-weight:700;}
+  .sh-icon{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--bg);background:var(--c1);width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;}
+  .sum-wrap{border-radius:16px;overflow:hidden;border:1px solid var(--border);}
+  table.sum{width:100%;border-collapse:collapse;font-size:13px;}
+  .sum thead th{background:var(--bg-alt);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--c1);padding:14px 16px;text-align:left;border-bottom:1px solid var(--border);}
+  .sum tbody tr{background:var(--bg-card);}.sum tbody tr:nth-child(even){background:var(--bg-alt);}
+  .sum tbody td{padding:11px 16px;border-bottom:1px solid var(--border);color:var(--ts);line-height:1.5;vertical-align:middle;}
+  .sum tbody tr:last-child td{border-bottom:none;}
+  .sum tbody td:first-child{font-weight:700;color:var(--tp);white-space:nowrap;}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle;}
+
+  .footer{text-align:center;margin-top:64px;padding-top:28px;border-top:1px solid var(--border);}
+  .footer p{font-family:'Space Mono',monospace;font-size:12px;color:var(--tm);letter-spacing:1px;}
+  .footer .fa{color:var(--c1);}
+
+  @media(max-width:700px){.step{grid-template-columns:50px 1fr;}.step-num{width:38px;height:38px;font-size:12px;}}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-blob a"></div>
+<div class="bg-blob b"></div>
+<div class="bg-blob c"></div>
+
+<div class="page">
+
+  <div class="hero">
+    <div class="hero-badge">Scripting Guide · Apache JMeter</div>
+    <h1>Steps for JMeter Scripting</h1>
+    <p class="hero-sub">A structured process to create <strong>reliable, reusable, and realistic</strong> performance test scripts that simulate real user behavior.</p>
+    <div class="hero-goals">
+      <span class="hg" style="background:var(--c1b);border:1px solid var(--c1d);color:var(--c1);">Realistic</span>
+      <span class="hg" style="background:var(--c2b);border:1px solid var(--c2d);color:var(--c2);">Scalable</span>
+      <span class="hg" style="background:var(--c4b);border:1px solid var(--c4d);color:var(--c4);">Reusable</span>
+      <span class="hg" style="background:var(--c6b);border:1px solid var(--c6d);color:var(--c6);">Stable</span>
+    </div>
+  </div>
+
+  <!-- E2E FLOW -->
+  <div class="flow-box">
+    <div class="flow-label">End-to-End Scripting Flow</div>
+    <div class="flow-chain">
+      <div class="flow-node fn1">Requirement</div><span class="flow-arrow">→</span>
+      <div class="flow-node fn1">Environment Setup</div><span class="flow-arrow">→</span>
+      <div class="flow-node fn2">Test Plan</div><span class="flow-arrow">→</span>
+      <div class="flow-node fn2">Thread Group</div><span class="flow-arrow">→</span>
+      <div class="flow-node fn3">Add Requests</div><span class="flow-arrow">→</span>
+      <div class="flow-node fn4">Correlation</div><span class="flow-arrow">→</span>
+      <div class="flow-node fn4">Parameterization</div><span class="flow-arrow">→</span>
+      <div class="flow-node fn4">Assertions</div><span class="flow-arrow">→</span>
+      <div class="flow-node fn5">Debug</div><span class="flow-arrow">→</span>
+      <div class="flow-node fn5">Dry Run</div><span class="flow-arrow">→</span>
+      <div class="flow-node fn6">CLI Exec</div><span class="flow-arrow">→</span>
+      <div class="flow-node fn6">Report</div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 1 ═══ -->
+  <div class="step s1">
+    <div class="step-rail"><div class="step-num">01</div><div class="step-line"></div></div>
+    <div class="step-card">
+      <div class="sc-bar"></div>
+      <div class="sc-head"><h2>Preparation & Environment Setup</h2><span class="sc-icon">🛠️</span></div>
+      <div class="sc-body">
+        <div class="ss">
+          <div class="ss-head"><span class="ss-icon">☕</span><h3>Install Java (JDK 11+)</h3></div>
+          <div class="cb">java -version</div>
+        </div>
+        <div class="ss">
+          <div class="ss-head"><span class="ss-icon">📦</span><h3>Download & Launch JMeter</h3></div>
+          <div class="two-way">
+            <div class="cb">Windows: jmeter.bat</div>
+            <div class="cb">Linux/Mac: ./jmeter.sh</div>
+          </div>
+        </div>
+        <div class="ss">
+          <div class="ss-head"><span class="ss-icon">🎯</span><h3>Define Test Objectives</h3></div>
+          <div class="tags">
+            <span class="tag">Expected Load</span><span class="tag">Response Time SLA</span><span class="tag">TPS Target</span><span class="tag">Test Duration</span><span class="tag">Business Transactions</span>
+          </div>
+          <div class="ex"><strong>Login API should respond within 2 seconds for 1,000 concurrent users.</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 2 ═══ -->
+  <div class="step s2">
+    <div class="step-rail"><div class="step-num">02</div><div class="step-line"></div></div>
+    <div class="step-card">
+      <div class="sc-bar"></div>
+      <div class="sc-head"><h2>Building the Test Plan Structure</h2><span class="sc-icon">📐</span></div>
+      <div class="sc-body">
+        <div class="ss">
+          <div class="ss-head"><span class="ss-icon">👥</span><h3>Add Thread Group</h3></div>
+          <table class="mt"><thead><tr><th>Parameter</th><th>Value</th><th>Meaning</th></tr></thead><tbody>
+            <tr><td>Threads</td><td>100</td><td>Virtual Users</td></tr>
+            <tr><td>Ramp-Up</td><td>50 sec</td><td>Time to start all users</td></tr>
+            <tr><td>Loop Count</td><td>10</td><td>Each user repeats 10×</td></tr>
+          </tbody></table>
+        </div>
+        <div class="ss">
+          <div class="ss-head"><span class="ss-icon">⚙️</span><h3>Add Config Elements</h3></div>
+          <table class="mt"><thead><tr><th>Element</th><th>Purpose</th></tr></thead><tbody>
+            <tr><td>HTTP Request Defaults</td><td>Default server details</td></tr>
+            <tr><td>HTTP Header Manager</td><td>Content-Type, Auth headers</td></tr>
+            <tr><td>HTTP Cookie Manager</td><td>Session handling</td></tr>
+            <tr><td>CSV Data Set Config</td><td>Test data parameterization</td></tr>
+          </tbody></table>
+          <div class="note"><strong>Tip:</strong> Configure server URL once in HTTP Request Defaults instead of repeating in every sampler.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 3 ═══ -->
+  <div class="step s3">
+    <div class="step-rail"><div class="step-num">03</div><div class="step-line"></div></div>
+    <div class="step-card">
+      <div class="sc-bar"></div>
+      <div class="sc-head"><h2>Creating Samplers (Requests)</h2><span class="sc-icon">📡</span></div>
+      <div class="sc-body">
+        <div class="two-way">
+          <div class="ss">
+            <div class="ss-head"><span class="ss-icon">✍️</span><h3>Manual Entry</h3></div>
+            <div class="ss-desc">Thread Group → Add → Sampler → HTTP Request</div>
+            <table class="mt"><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody>
+              <tr><td>Method</td><td>POST</td></tr>
+              <tr><td>Path</td><td>/login</td></tr>
+              <tr><td>Body</td><td>username=test</td></tr>
+            </tbody></table>
+          </div>
+          <div class="ss">
+            <div class="ss-head"><span class="ss-icon">🔴</span><h3>Recording</h3></div>
+            <div class="ss-desc">HTTP(S) Test Script Recorder captures browser traffic automatically.</div>
+            <div class="tags">
+              <span class="tag">1. Configure proxy</span>
+              <span class="tag">2. Set browser proxy</span>
+              <span class="tag">3. Install SSL cert</span>
+              <span class="tag">4. Navigate app</span>
+              <span class="tag">5. Auto-capture</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 4 ═══ -->
+  <div class="step s4">
+    <div class="step-rail"><div class="step-num">04</div><div class="step-line"></div></div>
+    <div class="step-card">
+      <div class="sc-bar"></div>
+      <div class="sc-head"><h2>Enhancing the Script</h2><span class="sc-icon">✨</span></div>
+      <div class="sc-body">
+        <div class="sc-desc">Recorded scripts are static. <strong>Enhancement makes them realistic and reusable</strong> — correlation, parameterization, assertions, and timers.</div>
+
+        <div class="ss">
+          <div class="ss-head"><span class="ss-icon">🔗</span><h3>Correlation</h3></div>
+          <div class="ss-desc">Capture dynamic values (Session ID, CSRF Token, JWT) from one request and use in the next.</div>
+          <div class="cb" style="color:var(--c4);">Response: {"token":"abc123xyz"}<br>JSON Extractor → ${token}<br>Next Request Header: Authorization: Bearer ${token}</div>
+        </div>
+
+        <div class="ss">
+          <div class="ss-head"><span class="ss-icon">📊</span><h3>Parameterization</h3></div>
+          <div class="ss-desc">Use external test data via <strong>CSV Data Set Config</strong> instead of hardcoded values.</div>
+          <div class="cb" style="color:var(--c4);">CSV: username,password<br>      user1,pass1<br>      user2,pass2<br>→ Each VU picks unique data</div>
+        </div>
+
+        <div class="ss">
+          <div class="ss-head"><span class="ss-icon">✅</span><h3>Assertions</h3></div>
+          <div class="ss-desc">Validate response correctness — not just HTTP 200, but actual content.</div>
+          <table class="mt"><thead><tr><th>Assertion</th><th>Purpose</th></tr></thead><tbody>
+            <tr><td>Response Assertion</td><td>Validate text content</td></tr>
+            <tr><td>Duration Assertion</td><td>Validate response time</td></tr>
+            <tr><td>JSON Assertion</td><td>Validate JSON fields</td></tr>
+            <tr><td>Size Assertion</td><td>Validate payload size</td></tr>
+          </tbody></table>
+        </div>
+
+        <div class="ss">
+          <div class="ss-head"><span class="ss-icon">⏱️</span><h3>Timers</h3></div>
+          <div class="ss-desc">Simulate real-user think time between requests.</div>
+          <table class="mt"><thead><tr><th>Timer</th><th>Purpose</th></tr></thead><tbody>
+            <tr><td>Constant Timer</td><td>Fixed delay (e.g., 5 sec)</td></tr>
+            <tr><td>Gaussian Random</td><td>Realistic random delay</td></tr>
+            <tr><td>Uniform Random</td><td>Randomized wait range</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 5 ═══ -->
+  <div class="step s5">
+    <div class="step-rail"><div class="step-num">05</div><div class="step-line"></div></div>
+    <div class="step-card">
+      <div class="sc-bar"></div>
+      <div class="sc-head"><h2>Debugging & Validation</h2><span class="sc-icon">🔍</span></div>
+      <div class="sc-body">
+        <div class="two-way">
+          <div class="ss">
+            <div class="ss-head"><span class="ss-icon">🌳</span><h3>View Results Tree</h3></div>
+            <div class="ss-desc">Inspect request/response, headers, variables, errors. Verify <strong>${token}</strong> is correctly captured.</div>
+          </div>
+          <div class="ss">
+            <div class="ss-head"><span class="ss-icon">🧪</span><h3>Dry Run (1 User)</h3></div>
+            <div class="ss-desc">Execute with <strong>1 user</strong> before large-scale runs.</div>
+            <div class="tags">
+              <span class="tag">Login works ✓</span>
+              <span class="tag">Correlation works ✓</span>
+              <span class="tag">Data picks ✓</span>
+              <span class="tag">Assertions pass ✓</span>
+            </div>
+          </div>
+        </div>
+        <div class="note"><strong>1 User</strong> = Functional validation · <strong>1,000 Users</strong> = Performance testing</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 6 ═══ -->
+  <div class="step s6">
+    <div class="step-rail"><div class="step-num">06</div><div class="step-line" style="opacity:0"></div></div>
+    <div class="step-card">
+      <div class="sc-bar"></div>
+      <div class="sc-head"><h2>Test Execution & Best Practices</h2><span class="sc-icon">🚀</span></div>
+      <div class="sc-body">
+        <div class="ss">
+          <div class="ss-head"><span class="ss-icon">💻</span><h3>Execute in CLI Mode (Non-GUI)</h3></div>
+          <div class="ss-desc">GUI consumes CPU/memory and reduces JMeter performance. <strong>Always use CLI for load tests.</strong></div>
+          <div class="cb" style="color:var(--c6);">jmeter -n -t TestPlan.jmx -l results.jtl</div>
+        </div>
+        <div class="ss">
+          <div class="ss-head"><span class="ss-icon">🚫</span><h3>Disable Heavy Listeners</h3></div>
+          <div class="ss-desc">Avoid View Results Tree / Table during load tests — they consume huge memory and may crash JMeter.</div>
+        </div>
+        <div class="ss">
+          <div class="ss-head"><span class="ss-icon">🧠</span><h3>Heap Memory Tuning</h3></div>
+          <div class="ss-desc">Increase JVM heap for large tests. Edit jmeter.bat or jmeter.sh:</div>
+          <div class="cb" style="color:var(--c6);">HEAP=-Xms2g -Xmx4g<br>→ Initial: 2 GB · Max: 4 GB</div>
+        </div>
+        <div class="ss">
+          <div class="ss-head"><span class="ss-icon">📊</span><h3>Generate HTML Report</h3></div>
+          <div class="cb" style="color:var(--c6);">jmeter -g results.jtl -o ReportFolder</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="sum-head"><div class="sh-icon">∑</div><h2>Scripting Summary</h2></div>
+  <div class="sum-wrap">
+    <table class="sum">
+      <thead><tr><th>Step</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><span class="dot" style="background:var(--c1)"></span>Environment Setup</td><td>Prepare Java & JMeter</td></tr>
+        <tr><td><span class="dot" style="background:var(--c2)"></span>Test Plan Creation</td><td>Thread Group, Config Elements</td></tr>
+        <tr><td><span class="dot" style="background:var(--c3)"></span>Sampler Creation</td><td>Manual entry or recording</td></tr>
+        <tr><td><span class="dot" style="background:var(--c4)"></span>Enhancement</td><td>Correlation, parameterization, assertions, timers</td></tr>
+        <tr><td><span class="dot" style="background:var(--c5)"></span>Debug & Validate</td><td>Results Tree, dry run with 1 user</td></tr>
+        <tr><td><span class="dot" style="background:var(--c6)"></span>Execution</td><td>CLI mode, heap tuning, HTML report</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    <p><span class="fa">JMETER SCRIPTING</span> &middot; Setup → Build → Enhance → Debug → Execute → Analyze &middot; Author: Angshuman Basak</p>
+  </div>
+
+</div>
+</body>
+</html>
